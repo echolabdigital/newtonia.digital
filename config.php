@@ -8,7 +8,7 @@ define('DB_USER', 'newt_newtonia');
 define('DB_PASS', 'ahp64AFwjvaWO6uoevucr3ERnCdPMFCF');
 
 // ── App ───────────────────────────────────────────────────────────────────────
-define('APP_URL',  'https://newtonia.digital');
+define('APP_URL',  'https://app.newtonia.digital');
 define('APP_ENV',  'production');
 define('APP_NAME', 'Newton IA');
 

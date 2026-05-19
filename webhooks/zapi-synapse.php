@@ -52,6 +52,13 @@ $tenantId = (int)$channel['tenant_id'];
 // Busca ou cria conversa
 $conv = synapse_get_or_create_conversation((int)$agent['id'], $tenantId, $channelId, $phone, $name);
 
+// Bot pausado — humano está no controle
+if (($conv['status'] ?? '') === 'paused') {
+    synapse_save_message((int)$conv['id'], 'in', $content);
+    db_q('UPDATE conversations SET last_message_at = NOW(), message_count = message_count + 1 WHERE id = ?', [(int)$conv['id']]);
+    echo json_encode(['ok'=>true,'skip'=>'paused_human_takeover']); exit;
+}
+
 // Processa e responde
 $reply = synapse_process($agent, $conv, $content, $channel);
 
