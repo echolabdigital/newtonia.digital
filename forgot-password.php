@@ -1,9 +1,10 @@
 <?php
 /**
- * HERMES.b2b — Esqueci minha senha
+ * Newton IA — Esqueci minha senha
  * Gera token único e envia link de reset por e-mail.
  */
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/core/emails.php';
 
 // Redireciona se já está logado
 if (auth_user_id()) {
@@ -84,19 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reset_link = $base_url . '/reset-password.php?token=' . $token;
             $name       = $user['name'] ?: 'usuário';
 
-            $subject = 'HERMES.b2b — Redefina sua senha';
-            $body    = '<!DOCTYPE html><html lang="pt-BR"><body style="font-family:sans-serif;color:#18181b;padding:24px;max-width:520px;margin:0 auto">'
-                     . '<div style="margin-bottom:18px"><strong style="font-size:1.1rem;color:#10b981">HERMES<span style="color:#18181b">.b2b</span></strong></div>'
-                     . "<p>Olá, <strong>{$name}</strong>!</p>"
-                     . '<p style="margin:12px 0">Recebemos uma solicitação para redefinir a senha da sua conta HERMES.b2b.</p>'
-                     . '<p style="margin:12px 0">Clique no botão abaixo para criar uma nova senha (link válido por <strong>1 hora</strong>):</p>'
-                     . "<p style=\"margin:20px 0\"><a href=\"{$reset_link}\" style=\"background:#10b981;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;display:inline-block\">Redefinir minha senha →</a></p>"
-                     . "<p style=\"font-size:.82rem;color:#8b8a93\">Ou copie e cole: <br><a href=\"{$reset_link}\" style=\"color:#10b981\">{$reset_link}</a></p>"
-                     . '<hr style="margin:20px 0;border:none;border-top:1px solid #e7e5e0">'
-                     . '<p style="font-size:.78rem;color:#8b8a93">Se você não solicitou isso, ignore este e-mail — sua senha não será alterada.</p>'
-                     . '</body></html>';
-
-            hermes_mail($email, $subject, $body, ['reply_to' => 'suporte@hermesb2b.co']);
+            [$subject, $body] = email_redefinir_senha($name, $reset_link);
+            hermes_mail($email, $subject, $body);
         }
 
         $sent = true;
