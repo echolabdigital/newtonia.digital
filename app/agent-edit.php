@@ -1,0 +1,411 @@
+<?php
+require_once __DIR__ . '/../config.php';
+$tenant = require_tenant();
+require_once __DIR__ . '/_layout.php';
+
+$tid   = (int) $tenant['id'];
+$id    = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$agent = $id ? agent_get($id, $tid) : null;
+$isNew = !$agent;
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'delete') {
+    csrf_check();
+    if ($agent) { agent_delete($id, $tid); audit_log('agent.deleted','agent',$id); }
+    header('Location: /app/agents.php'); exit;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') !== 'delete') {
+    csrf_check();
+    $name    = trim($_POST['name'] ?? '');
+    $prompt  = trim($_POST['prompt'] ?? '');
+    $model   = trim($_POST['model'] ?? 'llama-3.3-70b-versatile');
+    $status  = in_array($_POST['status'] ?? '', ['active','inactive','draft']) ? $_POST['status'] : 'draft';
+    $errors  = [];
+    if (!$name)   $errors[] = 'Nome obrigatorio.';
+    if (!$prompt) $errors[] = 'Prompt obrigatorio.';
+    if (!$errors) {
+        $provider = llm_provider_from_model($model);
+        if ($isNew) {
+            $id    = agent_create($tid, $name, $prompt, $model);
+            $agent = agent_get($id, $tid);
+            $isNew = false;
+            audit_log('agent.created','agent',$id,['name'=>$name]);
+        } else {
+            agent_update($id, $tid, compact('name','prompt','model','status','provider'));
+            $agent = agent_get($id, $tid);
+            audit_log('agent.updated','agent',$id);
+        }
+        $zapiInstance = trim($_POST['zapi_instance'] ?? '');
+        $zapiToken    = trim($_POST['zapi_token'] ?? '');
+        $zapiClient   = trim($_POST['zapi_client'] ?? '');
+        if ($zapiInstance && $zapiToken && $zapiClient) {
+            agent_channel_save($id, $tid, [
+                'instance'     => $zapiInstance,
+                'token'        => $zapiToken,
+                'client_token' => $zapiClient,
+            ]);
+        }
+        // Widget settings
+        $widgetEnabled  = isset($_POST['widget_enabled']) ? 1 : 0;
+        $widgetColor    = preg_match('/^#[0-9a-fA-F]{6}$/', $_POST['widget_color'] ?? '') ? $_POST['widget_color'] : '#0ea5e9';
+        $widgetPosition = in_array($_POST['widget_position'] ?? '', ['bottom-right','bottom-left']) ? $_POST['widget_position'] : 'bottom-right';
+        $widgetGreeting = trim($_POST['widget_greeting'] ?? '') ?: 'Ola! Como posso ajudar?';
+        $allowedDomains = json_encode(array_values(array_filter(array_map('trim', explode("\n", $_POST['allowed_domains'] ?? '')))));
+        agent_update($id, $tid, [
+            'widget_enabled'  => $widgetEnabled,
+            'widget_color'    => $widgetColor,
+            'widget_position' => $widgetPosition,
+            'widget_greeting' => $widgetGreeting,
+            'allowed_domains' => $allowedDomains,
+        ]);
+        $agent = agent_get($id, $tid);
+        flash('success', 'Agente salvo.');
+        header("Location: /app/agent-edit.php?id=$id"); exit;
+    }
+}
+
+$channel    = $agent ? agent_channel_get((int)$agent['id']) : null;
+$chCfg      = $channel ? (json_decode($channel['config_json'], true) ?? []) : [];
+$webhookUrl = $channel ? APP_URL.'/webhooks/zapi-synapse.php?channel='.(int)$channel['id'].'&token='.$channel['webhook_token'] : null;
+
+if ($channel && $chCfg) {
+    $zapiStatus = zapi_get_status($chCfg['instance']??'',$chCfg['token']??'',$chCfg['client_token']??'');
+    $newStatus  = ($zapiStatus['connected']??false) ? 'connected' : 'disconnected';
+    if ($newStatus !== $channel['status']) {
+        agent_channel_set_status((int)$channel['id'], $newStatus, $zapiStatus['phone']??null);
+        $channel['status']          = $newStatus;
+        $channel['connected_phone'] = $zapiStatus['phone']??null;
+    }
+}
+
+$catalog    = llm_catalog();
+$embedToken = $agent['embed_token'] ?? '';
+$embedUrl   = APP_URL . '/widget.js?agent=' . $embedToken;
+$embedCode  = '<script src="' . $embedUrl . '" defer></script>';
+
+$allowedDomainsArr = json_decode($agent['allowed_domains'] ?? '[]', true) ?: [];
+$allowedDomainsTxt = implode("\n", $allowedDomainsArr);
+
+$title = $isNew ? 'Novo Agente' : 'Editar &middot; '.htmlspecialchars($agent['name']??'');
+app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($agent,$channel,$chCfg,$webhookUrl,$isNew,$title,$tid,$catalog,$embedToken,$embedUrl,$embedCode,$allowedDomainsTxt) {
+?>
+<style>
+.ae-card{background:#fff;border:1px solid #e7e5e0;border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.ae-head{padding:1.25rem 1.5rem;border-bottom:1px solid #f4f2ed}
+.ae-body{padding:1.5rem;display:flex;flex-direction:column;gap:1.1rem}
+.ae-label{display:block;font-size:.82rem;font-weight:600;color:#3a3a40;margin-bottom:.4rem}
+.ae-input{width:100%;padding:.65rem .85rem;border:1px solid #e7e5e0;border-radius:8px;font-size:.88rem;color:#18181b;outline:none;box-sizing:border-box;transition:border-color .15s}
+.ae-input:focus{border-color:#0ea5e9}
+.ae-mono{font-family:'Geist Mono',monospace}
+.ae-tag{font-family:'Geist Mono',monospace;font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#0ea5e9;margin-bottom:.3rem}
+.ae-btn-primary{padding:.65rem 1.3rem;background:#0ea5e9;color:#fff;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+.ae-btn-primary:hover{background:#0284c7}
+.ae-btn-ghost{padding:.65rem 1.2rem;border:1px solid #e7e5e0;border-radius:8px;font-size:.875rem;color:#3a3a40;text-decoration:none;background:#fff}
+.ae-toggle-wrap{display:flex;align-items:center;gap:.75rem}
+.ae-toggle{width:40px;height:22px;border-radius:99px;background:#d1d5db;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.ae-toggle.on{background:#0ea5e9}
+.ae-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.ae-toggle.on::after{left:21px}
+.ae-code-box{background:#0f172a;border-radius:10px;padding:1rem 1.2rem;position:relative;overflow:hidden}
+.ae-code-box code{font-family:'Geist Mono',monospace;font-size:.78rem;color:#e2e8f0;line-height:1.6;white-space:pre-wrap;word-break:break-all;display:block}
+.ae-copy-btn{position:absolute;top:.6rem;right:.6rem;padding:.3rem .7rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:6px;color:#94a3b8;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Geist Mono',monospace}
+.ae-copy-btn:hover{background:rgba(255,255,255,.2);color:#e2e8f0}
+.ae-preview-bubble{display:inline-block;padding:9px 14px;border-radius:14px;font-size:13px;line-height:1.45;max-width:220px;word-break:break-word}
+</style>
+<div style="max-width:760px;margin:0 auto;padding:2rem 1.5rem">
+
+  <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.5rem;font-size:.82rem;color:#8b8a93">
+    <a href="agents.php" style="color:#8b8a93;text-decoration:none">Agentes</a>
+    <span>&rsaquo;</span>
+    <span style="color:#18181b"><?= $title ?></span>
+  </div>
+
+<?php $f = flash(); if ($f): ?>
+  <div style="padding:.75rem 1rem;border-radius:8px;margin-bottom:1.2rem;background:<?= $f['type']==='success'?'#f0fdf4':'#fef2f2' ?>;color:<?= $f['type']==='success'?'#16a34a':'#dc2626' ?>;border:1px solid <?= $f['type']==='success'?'#bbf7d0':'#fecaca' ?>;font-size:.875rem">
+    <?= htmlspecialchars($f['msg']) ?>
+  </div>
+<?php endif ?>
+
+  <form method="POST">
+    <?= csrf_field() ?>
+    <div class="ae-card">
+      <div class="ae-head">
+        <div class="ae-tag">SYNAPSE &middot; AGENTE</div>
+        <h2 style="margin:0;font-size:1.05rem;font-weight:600;color:#18181b">Identidade &amp; Comportamento</h2>
+      </div>
+      <div class="ae-body">
+        <div style="display:grid;grid-template-columns:1fr<?= $isNew ? '' : ' 160px' ?>;gap:1rem">
+          <div>
+            <label class="ae-label">Nome do agente *</label>
+            <input class="ae-input" type="text" name="name" value="<?= htmlspecialchars($agent['name']??'') ?>" placeholder="ex: Secretaria Virtual" required>
+          </div>
+          <?php if (!$isNew): ?>
+          <div>
+            <label class="ae-label">Status</label>
+            <select name="status" class="ae-input" style="background:#fff">
+              <?php foreach (['draft'=>'Rascunho','active'=>'Ativo','inactive'=>'Inativo'] as $v=>$l): ?>
+              <option value="<?= $v ?>" <?= ($agent['status']??'draft')===$v?'selected':'' ?>><?= $l ?></option>
+              <?php endforeach ?>
+            </select>
+          </div>
+          <?php endif ?>
+        </div>
+        <div>
+          <label class="ae-label">Modelo LLM</label>
+          <select name="model" class="ae-input ae-mono" style="background:#fff">
+            <?php foreach ($catalog as $pKey => $pInfo): ?>
+            <optgroup label="<?= htmlspecialchars($pInfo['label']) ?> — <?= htmlspecialchars($pInfo['desc']) ?>">
+              <?php foreach ($pInfo['models'] as $mKey => $mLabel): ?>
+              <option value="<?= htmlspecialchars($mKey) ?>" <?= ($agent['model']??'llama-3.3-70b-versatile')===$mKey?'selected':'' ?>>
+                <?= htmlspecialchars($mKey) ?> · <?= htmlspecialchars($mLabel) ?>
+              </option>
+              <?php endforeach ?>
+            </optgroup>
+            <?php endforeach ?>
+          </select>
+          <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem">Provedores habilitados pelo admin. Cada modelo tem custo e velocidade diferentes.</div>
+        </div>
+        <div>
+          <label class="ae-label">System Prompt * <span style="font-weight:400;color:#8b8a93;font-size:.78rem">— Persona, objetivo e regras do agente</span></label>
+          <textarea name="prompt" rows="10" required class="ae-input ae-mono" style="resize:vertical;line-height:1.6" placeholder="Voce e [nome], assistente de [empresa]. Seu objetivo e [objetivo]. Voce deve [comportamento]. Nao deve [restricoes]..."><?= htmlspecialchars($agent['prompt']??'') ?></textarea>
+          <div style="font-size:.75rem;color:#8b8a93;margin-top:.3rem">Seja especifico sobre tom, limitacoes e fluxo esperado. O agente seguira este prompt a risca.</div>
+        </div>
+
+        <!-- Widget settings inline -->
+        <?php if (!$isNew): ?>
+        <div style="border-top:1px solid #f4f2ed;padding-top:1.1rem">
+          <div class="ae-tag" style="margin-bottom:.6rem">WIDGET &middot; CHAT EMBED</div>
+          <div style="display:flex;flex-direction:column;gap:1rem">
+            <div class="ae-toggle-wrap">
+              <label style="position:relative;display:block;cursor:pointer">
+                <input type="checkbox" name="widget_enabled" <?= ($agent['widget_enabled']??0)?'checked':'' ?> onchange="this.nextElementSibling.classList.toggle('on',this.checked)" style="opacity:0;position:absolute;width:0;height:0">
+                <div class="ae-toggle <?= ($agent['widget_enabled']??0)?'on':'' ?>"></div>
+              </label>
+              <span style="font-size:.875rem;font-weight:500;color:#18181b">Widget habilitado — permite embed no site do cliente</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+              <div>
+                <label class="ae-label">Cor do widget</label>
+                <div style="display:flex;align-items:center;gap:.5rem">
+                  <input type="color" name="widget_color" value="<?= htmlspecialchars($agent['widget_color']??'#0ea5e9') ?>" style="width:38px;height:38px;border:1px solid #e7e5e0;border-radius:6px;cursor:pointer;padding:2px" onchange="updatePreview()">
+                  <input class="ae-input ae-mono" type="text" id="colorHex" value="<?= htmlspecialchars($agent['widget_color']??'#0ea5e9') ?>" style="width:90px" oninput="document.querySelector('[name=widget_color]').value=this.value;updatePreview()">
+                </div>
+              </div>
+              <div>
+                <label class="ae-label">Posicao</label>
+                <select name="widget_position" class="ae-input" style="background:#fff" onchange="updatePreview()">
+                  <option value="bottom-right" <?= ($agent['widget_position']??'bottom-right')==='bottom-right'?'selected':'' ?>>Direita</option>
+                  <option value="bottom-left"  <?= ($agent['widget_position']??'bottom-right')==='bottom-left'?'selected':'' ?>>Esquerda</option>
+                </select>
+              </div>
+              <div>
+                <label class="ae-label">Preview</label>
+                <div id="widgetPreview" style="display:flex;align-items:center;gap:.5rem">
+                  <div id="pvBtn" style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+                  </div>
+                  <div id="pvBubble" class="ae-preview-bubble" style="color:#fff;font-size:.75rem">Ola!</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="ae-label">Mensagem de boas-vindas</label>
+              <input class="ae-input" type="text" name="widget_greeting" value="<?= htmlspecialchars($agent['widget_greeting']??'Ola! Como posso ajudar?') ?>" placeholder="Ola! Como posso ajudar?" oninput="document.getElementById('pvBubble').textContent=this.value||'Ola!'">
+            </div>
+            <div>
+              <label class="ae-label">Dominios autorizados <span style="font-weight:400;color:#8b8a93;font-size:.78rem">— um por linha. Vazio = aceita qualquer dominio</span></label>
+              <textarea name="allowed_domains" rows="3" class="ae-input ae-mono" placeholder="meusite.com.br&#10;loja.meusite.com.br" style="resize:vertical;line-height:1.6;font-size:.82rem"><?= htmlspecialchars($allowedDomainsTxt) ?></textarea>
+            </div>
+          </div>
+        </div>
+        <?php endif ?>
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-bottom:1.5rem">
+      <a href="agents.php" class="ae-btn-ghost">Cancelar</a>
+      <button type="submit" class="ae-btn-primary"><?= $isNew ? 'Criar Agente' : 'Salvar' ?></button>
+    </div>
+  </form>
+
+<?php if (!$isNew): ?>
+
+  <!-- Embed code card -->
+  <?php if ($embedToken): ?>
+  <div class="ae-card" style="margin-bottom:1.5rem">
+    <div class="ae-head" style="display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div class="ae-tag">EMBED &middot; SNIPPET</div>
+        <h2 style="margin:0;font-size:1.05rem;font-weight:600;color:#18181b">Codigo para o site do cliente</h2>
+      </div>
+      <span style="font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px;background:<?= ($agent['widget_enabled']??0)?'#f0fdf4':'#f8fafc' ?>;color:<?= ($agent['widget_enabled']??0)?'#16a34a':'#8b8a93' ?>;border:1px solid <?= ($agent['widget_enabled']??0)?'#bbf7d0':'#e7e5e0' ?>">
+        <?= ($agent['widget_enabled']??0) ? 'Widget ativo' : 'Widget desativado' ?>
+      </span>
+    </div>
+    <div style="padding:1.25rem 1.5rem;display:flex;flex-direction:column;gap:1rem">
+      <p style="margin:0;font-size:.85rem;color:#64748b">Cole este snippet antes do <code style="font-family:'Geist Mono',monospace;background:#f4f2ed;padding:1px 5px;border-radius:4px">&lt;/body&gt;</code> no HTML do cliente. O chat aparece automaticamente.</p>
+      <div class="ae-code-box">
+        <code id="embedSnippet"><?= htmlspecialchars($embedCode) ?></code>
+        <button class="ae-copy-btn" onclick="copyEmbed(this)">copiar</button>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center">
+        <div style="flex:1">
+          <label class="ae-label" style="margin-bottom:.3rem">Verificar dominio</label>
+          <div style="display:flex;gap:.5rem">
+            <input class="ae-input ae-mono" type="text" id="domainCheck" placeholder="meusite.com.br" style="flex:1;font-size:.82rem">
+            <button type="button" onclick="verifyDomain()" style="padding:.6rem 1rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;font-size:.82rem;font-weight:600;color:#0284c7;cursor:pointer;white-space:nowrap">Verificar embed</button>
+          </div>
+        </div>
+      </div>
+      <div id="verifyResult" style="display:none;font-size:.82rem;padding:.6rem .9rem;border-radius:8px"></div>
+    </div>
+  </div>
+  <?php endif ?>
+
+  <form method="POST">
+    <?= csrf_field() ?>
+    <div class="ae-card">
+      <div class="ae-head" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="ae-tag">CANAL &middot; WHATSAPP Z-API</div>
+          <h2 style="margin:0;font-size:1.05rem;font-weight:600;color:#18181b">Conectar instancia</h2>
+        </div>
+        <?php if ($channel): ?>
+        <span style="font-size:.75rem;font-weight:600;padding:4px 12px;border-radius:99px;background:<?= $channel['status']==='connected'?'#f0fdf4':'#fef3c7' ?>;color:<?= $channel['status']==='connected'?'#16a34a':'#d97706' ?>">
+          <?= $channel['status']==='connected' ? 'Conectado' : 'Desconectado' ?>
+        </span>
+        <?php endif ?>
+      </div>
+      <div class="ae-body">
+        <?php if ($channel && $channel['status']==='connected'): ?>
+        <div style="padding:.7rem 1rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;font-size:.85rem;color:#16a34a">
+          Numero conectado: <strong><?= htmlspecialchars($channel['connected_phone']??'—') ?></strong>
+        </div>
+        <?php endif ?>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div>
+            <label class="ae-label">Instance ID</label>
+            <input class="ae-input ae-mono" type="text" name="zapi_instance" value="<?= htmlspecialchars($chCfg['instance']??'') ?>" placeholder="3ABC123...">
+          </div>
+          <div>
+            <label class="ae-label">Token</label>
+            <input class="ae-input ae-mono" type="text" name="zapi_token" value="<?= htmlspecialchars($chCfg['token']??'') ?>" placeholder="Token da instancia">
+          </div>
+        </div>
+        <div>
+          <label class="ae-label">Client Token</label>
+          <input class="ae-input ae-mono" type="text" name="zapi_client" value="<?= htmlspecialchars($chCfg['client_token']??'') ?>" placeholder="Painel Z-API > Security > Client Token">
+        </div>
+        <?php if ($webhookUrl): ?>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:.85rem 1rem">
+          <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.08em">Webhook URL — configure no painel Z-API</div>
+          <div class="ae-mono" style="font-size:.78rem;color:#18181b;word-break:break-all"><?= htmlspecialchars($webhookUrl) ?></div>
+        </div>
+        <?php endif ?>
+        <div style="display:flex;justify-content:flex-end">
+          <button type="submit" class="ae-btn-primary">Salvar Canal</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <?php if ($channel && $chCfg && ($channel['status']??'') !== 'connected'): ?>
+  <div class="ae-card" style="margin-bottom:1.5rem">
+    <div class="ae-head"><h2 style="margin:0;font-size:1rem;font-weight:600;color:#18181b">Conectar via QR Code</h2></div>
+    <div style="padding:1.5rem;text-align:center">
+      <button onclick="loadQR()" style="padding:.65rem 1.3rem;background:#f0f9ff;color:#0ea5e9;border:1px solid #bae6fd;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer">Gerar QR Code</button>
+      <div id="qrImg" style="margin-top:1rem;display:none">
+        <img id="qrSrc" src="" alt="QR" style="max-width:240px;border-radius:8px;border:1px solid #e7e5e0">
+        <p style="font-size:.82rem;color:#8b8a93;margin:.75rem 0 .3rem">WhatsApp > Aparelhos Conectados > Conectar aparelho</p>
+        <button onclick="loadQR()" style="font-size:.8rem;color:#0ea5e9;background:none;border:none;cursor:pointer;text-decoration:underline">Atualizar QR</button>
+      </div>
+    </div>
+  </div>
+  <?php endif ?>
+
+  <div style="display:flex;gap:.75rem;margin-bottom:1.5rem">
+    <a href="agent-test.php?id=<?= (int)$agent['id'] ?>" style="flex:1;padding:.75rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;text-align:center;color:#0284c7;text-decoration:none;font-size:.875rem;font-weight:600">
+      Testar no browser
+    </a>
+    <a href="conversations.php?agent_id=<?= (int)$agent['id'] ?>" style="flex:1;padding:.75rem;background:#f8fafc;border:1px solid #e7e5e0;border-radius:10px;text-align:center;color:#3a3a40;text-decoration:none;font-size:.875rem;font-weight:600">
+      Ver conversas
+    </a>
+  </div>
+
+  <form method="POST" onsubmit="return confirm('Deletar este agente? Esta acao nao pode ser desfeita.')">
+    <?= csrf_field() ?>
+    <input type="hidden" name="_action" value="delete">
+    <div style="background:#fff;border:1px solid #fecaca;border-radius:12px;padding:1.25rem 1.5rem;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:.875rem;font-weight:600;color:#dc2626;margin-bottom:.15rem">Deletar agente</div>
+        <div style="font-size:.8rem;color:#8b8a93">Remove o agente, canal e historico de conversas permanentemente.</div>
+      </div>
+      <button type="submit" style="padding:.6rem 1.1rem;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer">Deletar</button>
+    </div>
+  </form>
+
+<?php endif ?>
+</div>
+
+<script>
+// Widget preview
+function updatePreview(){
+  var color = document.querySelector('[name=widget_color]').value;
+  document.getElementById('pvBtn').style.background = color;
+  document.getElementById('pvBubble').style.background = color;
+  document.getElementById('colorHex').value = color;
+}
+updatePreview();
+
+<?php if ($channel): ?>
+function loadQR(){
+  fetch('/app/agent-qr.php?id=<?= (int)$channel['id'] ?>')
+    .then(r=>r.json()).then(d=>{
+      if(d.qr){document.getElementById('qrSrc').src='data:image/png;base64,'+d.qr;document.getElementById('qrImg').style.display='block';}
+      else alert('Erro ao gerar QR. Verifique as credenciais Z-API.');
+    });
+}
+<?php endif ?>
+
+function copyEmbed(btn){
+  var text = document.getElementById('embedSnippet').textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent = 'copiado!';
+    btn.style.color = '#22c55e';
+    setTimeout(function(){ btn.textContent = 'copiar'; btn.style.color = ''; }, 2000);
+  });
+}
+
+function verifyDomain(){
+  var domain = document.getElementById('domainCheck').value.trim();
+  if(!domain){ alert('Informe um dominio.'); return; }
+  var result = document.getElementById('verifyResult');
+  result.style.display = 'block';
+  result.style.background = '#f8fafc';
+  result.style.color = '#64748b';
+  result.style.border = '1px solid #e7e5e0';
+  result.textContent = 'Verificando ' + domain + '...';
+
+  fetch('/app/agent-verify-domain.php?id=<?= (int)($agent['id']??0) ?>&domain=' + encodeURIComponent(domain))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.found){
+        result.style.background = '#f0fdf4';
+        result.style.color = '#16a34a';
+        result.style.border = '1px solid #bbf7d0';
+        result.textContent = '✓ Widget encontrado em ' + domain;
+      } else {
+        result.style.background = '#fef2f2';
+        result.style.color = '#dc2626';
+        result.style.border = '1px solid #fecaca';
+        result.textContent = '✗ Widget nao detectado em ' + domain + (d.error ? ' — ' + d.error : '. Verifique se o snippet foi instalado.');
+      }
+    })
+    .catch(function(){
+      result.style.background = '#fef2f2';
+      result.style.color = '#dc2626';
+      result.style.border = '1px solid #fecaca';
+      result.textContent = '✗ Erro de conexao ao verificar dominio.';
+    });
+}
+</script>
+<?php });

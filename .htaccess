@@ -1,0 +1,18 @@
+Options -Indexes
+
+ErrorDocument 404 /errors/404.php
+ErrorDocument 500 /errors/500.php
+
+<FilesMatch "^(config\.php|setup-admin\.php|\.env)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^cron/ - [F,L]
+    RewriteRule ^infra/ - [F,L]
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+    RewriteRule ^$ /login.php [L,R=302]
+</IfModule>

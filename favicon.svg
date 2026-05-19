@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Fundo verde HERMES com cantos arredondados -->
+  <rect width="64" height="64" rx="14" fill="#10b981"/>
+  <!-- Ícone terminal >_ em branco -->
+  <!-- Chevron > -->
+  <path d="M14 22 L28 32 L14 42" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Underscore _ -->
+  <line x1="32" y1="42" x2="50" y2="42" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+</svg>
