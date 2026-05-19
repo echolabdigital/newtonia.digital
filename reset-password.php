@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Redefinir senha
+ * Newton IA — Redefinir senha
  * Valida token + salva nova senha.
  */
 require_once __DIR__ . '/config.php';
@@ -32,7 +32,6 @@ $token = trim($_GET['token'] ?? '');
 $error = '';
 $done  = false;
 
-// Valida o token (existe, não expirado, não usado)
 $reset = null;
 if ($token !== '') {
     $reset = db_one(
@@ -69,63 +68,72 @@ if (!$invalid_token && $_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Nova senha — HERMES.b2b</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230EA5E9'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23fff'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6' transform='rotate(60 50 50)'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6' transform='rotate(120 50 50)'/%3E%3C/svg%3E">
+<title>Nova senha — Newton IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --hermes:#10b981; --coral:#be123c;
-    --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef;
+    --newton:#0ea5e9; --newton-2:#0284c7;
+    --ink:#0a0a0f; --mute:#8b8a93; --line:#e4e4dd; --bg:#fafaf7;
+    --font-display:'Geist',system-ui,sans-serif; --font-mono:'Geist Mono','SF Mono',monospace;
+    --radius:10px; --radius-sm:6px;
   }
-  body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
+  body { font-family: var(--font-display); background: var(--bg); color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
 
   .wrap { width: 100%; max-width: 420px; }
 
   .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px; text-decoration: none; color: inherit; }
-  .brand-icon { width: 44px; height: 44px; border-radius: 11px; background: var(--hermes); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16,185,129,.25); }
-  .brand-text { font-family: 'Geist Mono', monospace; font-weight: 700; font-size: 1.2rem; line-height: 1.1; }
-  .brand-text .b2b { color: var(--hermes); font-size: .76em; }
+  .brand-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--newton); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 12px rgba(14,165,233,.3); }
+  .brand-name { font-family: var(--font-mono); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.01em; }
+  .brand-name .ia { color: var(--newton); }
 
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 32px; box-shadow: 0 1px 6px rgba(0,0,0,.04); }
-  .card h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; text-align: center; letter-spacing: -0.02em; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04); }
+  .card h1 { font-size: 1.3rem; font-weight: 600; margin-bottom: 4px; text-align: center; letter-spacing: -0.02em; }
   .card .sub { color: var(--mute); font-size: .88rem; text-align: center; margin-bottom: 22px; line-height: 1.5; }
 
   .field { margin-bottom: 14px; }
-  .field label { display: block; font-family: 'Geist Mono', monospace; font-size: .62rem; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; margin-bottom: 6px; }
-  .field input { width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; font-size: .92rem; font-family: inherit; background: #fff; color: var(--ink); transition: all .15s; }
-  .field input:focus { outline: none; border-color: var(--hermes); box-shadow: 0 0 0 3px rgba(16,185,129,.1); }
+  .field label { display: block; font-family: var(--font-mono); font-size: .62rem; color: var(--mute); text-transform: uppercase; letter-spacing: .08em; font-weight: 600; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--radius-sm); font-size: .92rem; font-family: inherit; background: #fff; color: var(--ink); transition: border-color .15s, box-shadow .15s; }
+  .field input:focus { outline: none; border-color: var(--newton); box-shadow: 0 0 0 3px rgba(14,165,233,.12); }
 
   .strength { height: 3px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
   .strength-bar { height: 100%; width: 0; transition: width .3s, background .3s; }
 
-  .submit { width: 100%; padding: 12px; background: var(--hermes); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; margin-top: 6px; }
-  .submit:hover { background: #0ea371; }
+  .submit { width: 100%; padding: 12px; background: var(--ink); color: #fff; border: none; border-radius: var(--radius); font-size: .95rem; font-weight: 600; cursor: pointer; font-family: var(--font-mono); letter-spacing: .02em; transition: background .18s; margin-top: 6px; }
+  .submit:hover { background: var(--newton); }
 
-  .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 11px 14px; border-radius: 8px; font-size: .85rem; margin-bottom: 18px; }
-  .success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; padding: 16px 18px; border-radius: 8px; font-size: .9rem; line-height: 1.5; text-align: center; }
-  .warning { background: #fef3c7; border: 1px solid #fbbf24; color: #78350f; padding: 16px 18px; border-radius: 8px; font-size: .9rem; text-align: center; }
+  .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 11px 14px; border-radius: var(--radius-sm); font-size: .85rem; margin-bottom: 18px; }
+  .success { background: #f0f9ff; border: 1px solid #bae6fd; color: #0c4a6e; padding: 16px 18px; border-radius: var(--radius-sm); font-size: .9rem; line-height: 1.5; text-align: center; }
+  .warning { background: #fef3c7; border: 1px solid #fbbf24; color: #78350f; padding: 16px 18px; border-radius: var(--radius-sm); font-size: .9rem; text-align: center; }
 
-  .back { display: block; text-align: center; margin-top: 18px; font-size: .88rem; color: var(--mute); text-decoration: none; }
-  .back:hover { color: var(--hermes); }
+  .btn-link { display: block; text-align: center; padding: 12px; background: var(--ink); color: #fff; border-radius: var(--radius); font-family: var(--font-mono); font-weight: 600; font-size: .95rem; text-decoration: none; margin-top: 16px; transition: background .18s; }
+  .btn-link:hover { background: var(--newton); }
+
+  .back { display: block; text-align: center; margin-top: 18px; font-size: .88rem; color: var(--mute); text-decoration: none; transition: color .15s; }
+  .back:hover { color: var(--newton); }
+
   .foot { text-align: center; margin-top: 18px; font-size: .72rem; color: var(--mute); }
   .foot a { color: var(--mute); text-decoration: none; }
-  .foot a:hover { color: var(--hermes); }
+  .foot a:hover { color: var(--newton); }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <a class="brand" href="/">
+  <a class="brand" href="/login.php">
     <div class="brand-icon">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 7l5 5-5 5"/><line x1="13" y1="17" x2="20" y2="17"/>
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>
+        <ellipse cx="12" cy="12" rx="9" ry="3.5"/>
+        <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(60 12 12)"/>
+        <ellipse cx="12" cy="12" rx="9" ry="3.5" transform="rotate(120 12 12)"/>
       </svg>
     </div>
-    <div class="brand-text">HERMES<span class="b2b">.b2b</span></div>
+    <div class="brand-name">Newton <span class="ia">IA</span></div>
   </a>
 
   <div class="card">
@@ -136,14 +144,14 @@ if (!$invalid_token && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ⚠ <strong>Link inválido ou expirado.</strong><br>
         Solicite um novo link de redefinição de senha.
       </div>
-      <a class="back" href="/forgot-password.php" style="margin-top:14px;display:block;text-align:center">Solicitar novo link →</a>
+      <a class="btn-link" href="/forgot-password.php" style="margin-top:18px">Solicitar novo link →</a>
 
     <?php elseif ($done): ?>
       <div class="success">
         ✓ <strong>Senha redefinida com sucesso!</strong><br>
         Você já pode entrar com sua nova senha.
       </div>
-      <a class="submit" href="/login.php" style="display:block;text-align:center;text-decoration:none;margin-top:16px">Ir pro login →</a>
+      <a class="btn-link" href="/login.php">Ir pro login →</a>
 
     <?php else: ?>
       <p class="sub">Conta: <strong><?= htmlspecialchars($reset['email']) ?></strong></p>
@@ -158,14 +166,14 @@ if (!$invalid_token && $_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="field">
           <label>Nova senha</label>
           <input type="password" name="password" id="pw1" required minlength="8"
-                 autocomplete="new-password" oninput="checkStrength(this.value)">
+                 autocomplete="new-password" placeholder="••••••••" oninput="checkStrength(this.value)">
           <div class="strength"><div class="strength-bar" id="str-bar"></div></div>
         </div>
 
         <div class="field">
           <label>Confirmar nova senha</label>
-          <input type="password" name="password2" id="pw2" required minlength="8"
-                 autocomplete="new-password">
+          <input type="password" name="password2" required minlength="8"
+                 autocomplete="new-password" placeholder="••••••••">
         </div>
 
         <button type="submit" class="submit">Salvar nova senha →</button>
@@ -178,7 +186,7 @@ if (!$invalid_token && $_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endif; ?>
 
   <div class="foot">
-    <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a> · by echo_lab
+    <a href="https://newtonia.digital" target="_blank">newtonia.digital</a> · by echo_lab
   </div>
 </div>
 
@@ -191,7 +199,7 @@ function checkStrength(v) {
   if (/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
   if (/\d/.test(v)) score++;
   if (/[^A-Za-z0-9]/.test(v)) score++;
-  const colors = ['#ef4444','#f97316','#eab308','#10b981','#10b981'];
+  const colors = ['#ef4444','#f97316','#eab308','#0ea5e9','#0284c7'];
   const widths  = ['20%','40%','60%','80%','100%'];
   bar.style.background = colors[score - 1] || 'transparent';
   bar.style.width      = widths[score - 1] || '0';
