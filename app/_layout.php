@@ -33,6 +33,13 @@ function app_layout(string $title, string $active, callable $body): void {
             'sub'=>'Handoff humano',
             'color'=>'#7c3aed'],
 
+        ['type'=>'section', 'label'=>'PULSE'],
+
+        ['k'=>'pulse', 'label'=>'Agenda', 'href'=>'pulse.php',
+            'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            'sub'=>'Reunioes · Lembretes',
+            'color'=>'#22c55e'],
+
         ['type'=>'section', 'label'=>'FLUX'],
 
         ['k'=>'flux', 'label'=>'Leads & Campanhas', 'href'=>'flux.php',

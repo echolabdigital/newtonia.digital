@@ -47,3 +47,4 @@ require_once $_core . 'webhooks.php';
 require_once $_core . 'synapse_plus.php';
 require_once $_core . 'flux.php';
 require_once $_core . 'sonar.php';
+require_once $_core . 'pulse.php';

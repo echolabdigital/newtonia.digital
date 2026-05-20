@@ -33,10 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'summ
     exit;
 }
 
+// Qualificacao SPIN
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'spin') {
+    csrf_check();
+    pulse_qualify_spin($id);
+    header('Location: /app/conversation-view.php?id=' . $id);
+    exit;
+}
+
 $summary = conv_summary_get($id);
 $tags    = conv_tags_get($id);
+$spin    = pulse_spin_get($id);
 
-app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['contact_phone']), 'conversations', function() use ($conv, $messages, $summary, $tags) {
+app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['contact_phone']), 'conversations', function() use ($conv, $messages, $summary, $tags, $spin) {
 ?>
 <div style="max-width:760px;margin:0 auto;padding:2rem 1.5rem">
 
@@ -132,6 +141,41 @@ app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['conta
     <?php endif ?>
   </div>
   <?php endif ?>
+
+  <!-- SPIN Qualification -->
+  <?php
+    $tempCfg = [
+      'cold' => ['#dbeafe','#1d4ed8','❄ Cold'],
+      'warm' => ['#fef3c7','#92400e','🌤 Warm'],
+      'hot'  => ['#fee2e2','#b91c1c','🔥 Hot'],
+    ];
+  ?>
+  <div style="background:linear-gradient(135deg,#fdf4ff,#fef3c7);border:1px solid #fde68a;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.5rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.72rem;font-weight:700;color:#92400e;letter-spacing:.05em">🎯 SPIN SELLING</span>
+        <?php if ($spin):
+          $tc = $tempCfg[$spin['temperature']] ?? $tempCfg['cold']; ?>
+          <span style="font-size:.7rem;padding:.15rem .55rem;border-radius:99px;background:<?= $tc[0] ?>;color:<?= $tc[1] ?>;font-weight:600"><?= $tc[2] ?></span>
+          <span style="font-size:.78rem;color:#475569"><b>Score:</b> <?= (int)$spin['score'] ?>/100</span>
+        <?php endif ?>
+      </div>
+      <form method="POST" style="display:inline"><?= csrf_field() ?><input type="hidden" name="_action" value="spin"><button type="submit" style="font-size:.7rem;background:transparent;border:1px solid #fde68a;color:#92400e;padding:.25rem .65rem;border-radius:6px;cursor:pointer">↻ <?= $spin ? 'Atualizar' : 'Qualificar agora' ?></button></form>
+    </div>
+    <?php if ($spin): ?>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem .9rem;font-size:.78rem;line-height:1.5;color:#18181b">
+        <div><b>Situacao:</b> <?= htmlspecialchars($spin['situation'] ?: '—') ?></div>
+        <div><b>Problema:</b> <?= htmlspecialchars($spin['problem'] ?: '—') ?></div>
+        <div><b>Implicacao:</b> <?= htmlspecialchars($spin['implication'] ?: '—') ?></div>
+        <div><b>Need-payoff:</b> <?= htmlspecialchars($spin['need_payoff'] ?: '—') ?></div>
+      </div>
+      <?php if ($spin['next_step']): ?>
+        <div style="font-size:.82rem;color:#7c2d12;margin-top:.5rem;font-weight:600">→ Proximo passo: <?= htmlspecialchars($spin['next_step']) ?></div>
+      <?php endif ?>
+    <?php else: ?>
+      <div style="font-size:.82rem;color:#78350f">Clique em <b>Qualificar agora</b> para a IA analisar essa conversa pelo metodo SPIN Selling (Situation, Problem, Implication, Need-payoff).</div>
+    <?php endif ?>
+  </div>
 
   <!-- Mensagens -->
   <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem">
