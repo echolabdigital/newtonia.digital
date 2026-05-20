@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
         $scopes = $_POST['scopes'] ?? ['chat:read','chat:write','agents:read','conversations:read'];
         if (!is_array($scopes)) $scopes = explode(',', (string)$scopes);
-        $allowed = ['chat:read','chat:write','agents:read','agents:write','conversations:read','conversations:write'];
+        $allowed = ['chat:read','chat:write','agents:read','agents:write','conversations:read','conversations:write','flux:write','pulse:read','sonar:write'];
         $scopes  = array_values(array_intersect($scopes, $allowed));
         if (!$scopes) $scopes = ['chat:read','chat:write'];
 
@@ -310,6 +310,9 @@ curl -X POST <?= e(APP_URL) ?>/api/v1/chat \
       <label><input type="checkbox" value="agents:write"> agents:write</label>
       <label><input type="checkbox" value="conversations:read" checked> conversations:read</label>
       <label><input type="checkbox" value="conversations:write"> conversations:write</label>
+      <label><input type="checkbox" value="flux:write" checked> flux:write</label>
+      <label><input type="checkbox" value="pulse:read" checked> pulse:read</label>
+      <label><input type="checkbox" value="sonar:write" checked> sonar:write</label>
     </div>
     <div id="key-result" style="margin-top:1rem;display:none"></div>
     <div class="modal-actions">

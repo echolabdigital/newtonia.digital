@@ -15,7 +15,7 @@ function api_key_generate(int $tenantId, string $name, array $scopes = [], ?int 
     $raw       = API_KEY_PREFIX . bin2hex(random_bytes(16));
     $hash      = hash('sha256', $raw);
     $prefix    = substr($raw, 0, 12);
-    $scopesCsv = $scopes ? implode(',', $scopes) : 'chat:read,chat:write,agents:read,conversations:read';
+    $scopesCsv = $scopes ? implode(',', $scopes) : 'chat:read,chat:write,agents:read,conversations:read,flux:write,pulse:read,sonar:write';
 
     db_insert('api_keys', [
         'tenant_id'  => $tenantId,

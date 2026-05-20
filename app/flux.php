@@ -33,15 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         flux_list_refresh_count($listId);
         echo json_encode(['ok'=>(bool)$id, 'id'=>$id]); exit;
     }
-    if ($a === 'scrape_google') {
-        $listId = (int)($_POST['list_id'] ?? 0);
-        $query  = trim($_POST['query'] ?? '');
-        $max    = max(10, min(60, (int)($_POST['max'] ?? 30)));
-        if (!flux_list_get($listId, $tid)) { echo json_encode(['ok'=>false,'error'=>'lista nao encontrada']); exit; }
-        if (!$query) { echo json_encode(['ok'=>false,'error'=>'query obrigatoria']); exit; }
-        $r = flux_scrape_google_maps($tid, $listId, $query, $max);
-        echo json_encode($r); exit;
-    }
     if ($a === 'campaign_create') {
         $id = flux_campaign_create($tid, $_POST, $uid);
         echo json_encode(['ok'=>true, 'id'=>$id]); exit;
@@ -180,7 +171,7 @@ app_layout('FLUX · Leads e Campanhas', 'flux', function() use ($tab, $lists, $c
       </div>
       <div style="display:flex;gap:.4rem">
         <button class="btn btn-primary" onclick="openLead()">+ Adicionar lead</button>
-        <button class="btn btn-warn" onclick="openScrape()">🌐 Buscar no Google Maps</button>
+        <a class="btn btn-warn" href="/app/api-keys.php" title="Lead vindo do HERMES Radar / Make / n8n via POST /api/v1/leads">🔗 Ingest via API</a>
         <button class="btn btn-ghost" onclick="document.getElementById('csv-input').click()">📁 Importar CSV</button>
         <a href="?tab=leads" class="btn btn-ghost">← Listas</a>
       </div>
@@ -200,7 +191,7 @@ app_layout('FLUX · Leads e Campanhas', 'flux', function() use ($tab, $lists, $c
     <?php endif ?>
 
     <?php if (!$leadsView): ?>
-      <div class="empty">Lista vazia. Adicione manualmente, importe um CSV ou busque no Google Maps.</div>
+      <div class="empty">Lista vazia. Adicione manualmente, importe CSV, ou puxe leads do <b>HERMES Radar</b> via API.</div>
     <?php else: ?>
       <table>
         <thead><tr><th>Nome / Negocio</th><th>Telefone</th><th>Cidade</th><th>Status</th><th>Rating</th></tr></thead>
@@ -224,7 +215,7 @@ app_layout('FLUX · Leads e Campanhas', 'flux', function() use ($tab, $lists, $c
     <div class="card-head">
       <div>
         <h2>Listas de leads</h2>
-        <div class="sub" style="font-size:.78rem;color:var(--ink-3)">Organize seus contatos por campanha. CSV, manual, Google Maps ou via API.</div>
+        <div class="sub" style="font-size:.78rem;color:var(--ink-3)">Organize seus contatos por campanha. CSV, manual, ou via API (HERMES Radar, Make, n8n).</div>
       </div>
       <button class="btn btn-primary" onclick="openList()">+ Nova lista</button>
     </div>
@@ -333,7 +324,7 @@ app_layout('FLUX · Leads e Campanhas', 'flux', function() use ($tab, $lists, $c
 <div class="modal-bg" id="modal-list">
   <div class="modal">
     <h3>Nova lista de leads</h3>
-    <div class="sub">Organize seus contatos. Depois adicione leads manualmente, via CSV ou Google Maps.</div>
+    <div class="sub">Organize seus contatos. Depois adicione manualmente, via CSV, ou puxe do HERMES Radar.</div>
     <label>Nome da lista</label>
     <input type="text" id="list-name" placeholder="Ex: Veterinarios Florianopolis">
     <div class="modal-actions">
@@ -359,22 +350,6 @@ app_layout('FLUX · Leads e Campanhas', 'flux', function() use ($tab, $lists, $c
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-lead')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveLead()">Adicionar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-bg" id="modal-scrape">
-  <div class="modal">
-    <h3>🌐 Buscar leads no Google Maps</h3>
-    <div class="sub">Requer Google Places API key configurada em <a href="/admin/integrations.php">Integracoes</a>. Custo: ~$0.03 por lead (Google cobra).</div>
-    <label>Query</label>
-    <input type="text" id="scrape-query" placeholder="Ex: veterinarios em florianopolis">
-    <label>Max resultados (10-60)</label>
-    <input type="number" id="scrape-max" value="30" min="10" max="60">
-    <div id="scrape-result" style="margin-top:1rem;font-size:.85rem"></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-scrape')">Fechar</button>
-      <button class="btn btn-warn" id="scrape-btn" onclick="runScrape()">Buscar</button>
     </div>
   </div>
 </div>
@@ -453,24 +428,6 @@ async function saveLead() {
   ['name','phone','email','business','city','state','address'].forEach(k => data[k] = document.getElementById('lead-'+k).value);
   const r = await post('lead_add', data);
   if (r.ok) location.reload(); else alert('Erro: lead nao adicionado (talvez duplicado)');
-}
-
-function openScrape() { document.getElementById('scrape-query').value = ''; document.getElementById('scrape-result').textContent = ''; openModal('modal-scrape'); }
-async function runScrape() {
-  const btn = document.getElementById('scrape-btn');
-  btn.disabled = true; btn.textContent = 'Buscando...';
-  const r = await post('scrape_google', {
-    list_id: <?= (int)$listFilter ?>,
-    query:   document.getElementById('scrape-query').value,
-    max:     document.getElementById('scrape-max').value,
-  });
-  btn.disabled = false; btn.textContent = 'Buscar';
-  if (r.ok) {
-    document.getElementById('scrape-result').innerHTML = '✓ ' + r.added + ' leads adicionados (' + r.pages + ' paginas)';
-    setTimeout(() => location.reload(), 1500);
-  } else {
-    document.getElementById('scrape-result').innerHTML = '<span style="color:#b91c1c">' + (r.error || 'Erro') + '</span>';
-  }
 }
 
 function openCampaign() { openModal('modal-campaign'); }
