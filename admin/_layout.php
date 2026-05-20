@@ -20,7 +20,6 @@ function admin_layout(string $title, string $active, callable $body): void
         ['type'=>'sec', 'label'=>'Comercial'],
         ['k' => 'tenants',     'label' => 'Tenants',        'href' => 'tenants.php',      'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
         ['k' => 'plans',       'label' => 'Planos',         'href' => 'plans.php',        'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-        ['k' => 'cnpj-limits', 'label' => 'Limites CNPJ',   'href' => 'cnpj-limits.php',  'icon' => 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4'],
         ['type'=>'sec', 'label'=>'Integrações'],
         ['k' => 'integrations','label' => 'APIs · Webhooks','href' => 'integrations.php', 'icon' => 'M13 10V3L4 14h7v7l9-11h-7z'],
         ['k' => 'zapi',        'label' => 'Z-API Pool',     'href' => '#',                'icon' => 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z', 'soon'=>true],
@@ -42,27 +41,27 @@ function admin_layout(string $title, string $active, callable $body): void
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --indigo:#3d3dff; --hermes:#0ea5e9; --coral:#be123c;
-    --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --paper:#fafaf7; --bone:#f6f4ef;
-    --cr: var(--hermes); --cr-glow: rgba(14,165,233,.08);
+    --newton:#0ea5e9; --newton-dark:#0284c7; --indigo:#3d3dff; --coral:#be123c;
+    --ink:#0a0a0f; --mute:#8b8a93; --line:#e4e4dd; --paper:#fafaf7; --bone:#f6f4ef;
+    --cr: var(--newton); --cr-glow: rgba(14,165,233,.08);
     --ink-3: var(--mute);
     --sidebar-w: 230px;
   }
   body  { font-family: 'Geist', system-ui, -apple-system, sans-serif; background: var(--bone); color: var(--ink); display: flex; min-height: 100vh; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
   code, pre, .mono { font-family: 'Geist Mono', monospace; }
 
-  /* Sidebar HERMES — branco com accent verde (alinhado ao app/_layout.php) */
+  /* Sidebar Newton IA — branco com accent verde (alinhado ao app/_layout.php) */
   .adm-side { width: var(--sidebar-w); background: #fff; color: var(--ink-2, #3a3a40); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 18px 0; flex-shrink: 0; }
   .adm-logo { padding: 0 20px 18px; border-bottom: 1px solid var(--line); margin-bottom: 14px; display: flex; align-items: center; gap: 10px; }
-  .adm-logo-box { width: 36px; height: 36px; border-radius: 9px; background: var(--hermes); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(14,165,233,.25); transition: background .15s; }
-  .adm-logo-box:hover { background: #0ea371; }
+  .adm-logo-box { width: 36px; height: 36px; border-radius: 9px; background: var(--newton); color: #fff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 1px 3px rgba(14,165,233,.25); transition: background .15s; }
+  .adm-logo-box:hover { background: #0284c7; }
   .adm-logo-text { font-family: 'Geist Mono', monospace; font-weight: 700; font-size: .95rem; color: var(--ink); line-height: 1.1; letter-spacing: -0.01em; }
-  .adm-logo-text .b2b { color: var(--hermes); font-size: .76em; font-weight: 600; }
-  .adm-logo-text small { display: block; font-family: 'Geist Mono', monospace; font-size: .58rem; font-weight: 600; color: var(--hermes); margin-top: 3px; letter-spacing: .08em; text-transform: uppercase; }
+  .adm-logo-text .ia { color: var(--newton); font-size: .76em; font-weight: 600; }
+  .adm-logo-text small { display: block; font-family: 'Geist Mono', monospace; font-size: .58rem; font-weight: 600; color: var(--newton); margin-top: 3px; letter-spacing: .08em; text-transform: uppercase; }
   nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: .85rem; color: var(--ink-2, #3a3a40); text-decoration: none; transition: all .15s; font-weight: 500; position: relative; }
   nav a:hover   { background: var(--bone); color: var(--ink); }
-  nav a.active  { background: var(--cr-glow); color: var(--hermes); font-weight: 600; }
-  nav a.active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: var(--hermes); border-radius: 0 99px 99px 0; }
+  nav a.active  { background: var(--cr-glow); color: var(--newton); font-weight: 600; }
+  nav a.active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: var(--newton); border-radius: 0 99px 99px 0; }
   nav svg { width: 17px; height: 17px; flex-shrink: 0; stroke-width: 1.8; }
   nav .sec { padding: 14px 20px 6px; font-family: 'Geist Mono', monospace; font-size: .58rem; color: var(--mute); text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
   nav .sec::before { content: '// '; opacity: .5; }
@@ -75,7 +74,7 @@ function admin_layout(string $title, string $active, callable $body): void
   .adm-header { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
   .adm-header h1 { font-size: 1rem; font-weight: 600; color: var(--ink); }
   .adm-header a { font-size: .82rem; color: var(--mute); text-decoration: none; }
-  .adm-header a:hover { color: var(--hermes); }
+  .adm-header a:hover { color: var(--newton); }
   .adm-content { padding: 26px 28px; overflow-y: auto; flex: 1; }
 
   /* Componentes utilitários compartilhados (panel, table, badge, etc.) */
@@ -89,13 +88,13 @@ function admin_layout(string $title, string $active, callable $body): void
   .badge-active { background: #dcfce7; color: #166534; }
   .badge-pending { background: #fef3c7; color: #92400e; }
   .badge-suspended, .badge-cancelled { background: #f3f4f6; color: var(--mute); }
-  .btn-action { padding: 8px 14px; background: var(--hermes); color: #fff; border: none; border-radius: 7px; font-size: .82rem; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: background .15s; }
-  .btn-action:hover { background: #0ea371; color: #fff; }
+  .btn-action { padding: 8px 14px; background: var(--newton); color: #fff; border: none; border-radius: 7px; font-size: .82rem; font-weight: 500; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; transition: background .15s; }
+  .btn-action:hover { background: #0284c7; color: #fff; }
   .btn-action.secondary { background: #fff; color: var(--ink); border: 1px solid var(--line); }
   .btn-action.secondary:hover { background: var(--bone); border-color: var(--mute); color: var(--ink); }
   label { font-family: 'Geist Mono', monospace; font-size: .64rem; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; display: block; margin-bottom: 4px; }
   input[type=text], input[type=number], input[type=email], select, textarea { padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; font-size: .86rem; font-family: inherit; background: #fff; color: var(--ink); width: 100%; }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--hermes); box-shadow: 0 0 0 3px var(--cr-glow); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--newton); box-shadow: 0 0 0 3px var(--cr-glow); }
   .field { display: flex; flex-direction: column; gap: 4px; }
   .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
@@ -107,11 +106,12 @@ function admin_layout(string $title, string $active, callable $body): void
 <aside class="adm-side">
   <a href="index.php" class="adm-logo" style="text-decoration:none">
     <div class="adm-logo-box">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 7l5 5-5 5"/><line x1="13" y1="17" x2="20" y2="17"/>
+      <svg viewBox="0 0 100 100" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 20 L58 50 L22 80" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <rect x="62" y="68" width="24" height="11" rx="5.5" fill="#BE123C"/>
       </svg>
     </div>
-    <div class="adm-logo-text">Newton IA<small>Super Admin · echo_lab</small></div>
+    <div class="adm-logo-text">Newton <span class="ia">IA</span><small>Super Admin · echo_lab</small></div>
   </a>
   <nav>
     <?php foreach ($nav as $item): ?>
