@@ -27,7 +27,8 @@ function agent_create(int $tenantId, string $name, string $prompt, string $model
 }
 
 function agent_update(int $id, int $tenantId, array $data): void {
-    $allowed = ['name', 'prompt', 'model', 'status', 'context_window'];
+    $allowed = ['name', 'prompt', 'model', 'status', 'context_window',
+                'voice_enabled', 'voice_reply', 'voice_provider', 'voice_id', 'voice_style', 'voice_max_chars'];
     $set = []; $params = [];
     foreach ($allowed as $k) {
         if (array_key_exists($k, $data)) {

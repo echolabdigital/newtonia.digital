@@ -24,6 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $places = trim($_POST['google_places'] ?? '');
         if ($places && $places !== '••••••••') setting_set('google.places_api_key', $places, auth_user_id(), true);
         flash('success', 'Google Places atualizado.');
+    } elseif ($provider === 'elevenlabs') {
+        $key   = trim($_POST['elevenlabs_key']   ?? '');
+        $voice = trim($_POST['elevenlabs_voice'] ?? '');
+        if ($key   && $key   !== '••••••••') setting_set('elevenlabs.api_key', $key, auth_user_id(), true);
+        if ($voice) setting_set('elevenlabs.default_voice', $voice, auth_user_id());
+        flash('success', 'ElevenLabs atualizado.');
     } elseif (isset($catalog[$provider])) {
         $key     = trim($_POST['api_key'] ?? '');
         $enabled = isset($_POST['enabled']) ? '1' : '0';
@@ -257,6 +263,47 @@ admin_layout('Integrações · IA', 'integrations', function() use ($catalog) {
                placeholder="<?= $googlePlaces ? '(mantém a chave atual)' : 'AIzaSy...' ?>"
                autocomplete="new-password">
         <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem">Habilite a <b>Places API</b> em <a href="https://console.cloud.google.com" target="_blank" style="color:#0ea5e9">console.cloud.google.com</a> e cole a chave aqui.</div>
+      </div>
+      <div class="pcard-foot"><button type="submit" class="btn-save">Salvar</button></div>
+    </form>
+  </div>
+
+  <!-- ElevenLabs (SONAR — voz no WhatsApp) -->
+  <?php
+    $elKey   = setting_get('elevenlabs.api_key') ?: '';
+    $elVoice = setting_get('elevenlabs.default_voice') ?: 'EXAVITQu4vr4xnSDxMaL';
+  ?>
+  <div class="pcard" style="margin-bottom:1.5rem">
+    <div class="pcard-head">
+      <div class="provider-icon" style="background:#7c3aed18;color:#7c3aed">🎙</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+          <span style="font-size:1rem;font-weight:700;color:#18181b">ElevenLabs · SONAR (voz)</span>
+          <div style="display:flex;align-items:center;gap:.35rem">
+            <div class="dot-status" style="background:<?= $elKey ? '#22c55e' : '#d1d5db' ?>"></div>
+            <span style="font-size:.72rem;font-weight:600;color:<?= $elKey ? '#16a34a' : '#94a3b8' ?>"><?= $elKey ? 'Configurado' : 'Sem chave' ?></span>
+          </div>
+        </div>
+        <div style="font-size:.8rem;color:#8b8a93">TTS multilingual realista. Whisper (transcribe) usa o Groq (chave Groq ja configurada).</div>
+      </div>
+    </div>
+    <form method="POST">
+      <?= csrf_field() ?>
+      <input type="hidden" name="provider" value="elevenlabs">
+      <div class="pcard-body" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div>
+          <label class="field-label">API Key</label>
+          <input class="field-input" type="password" name="elevenlabs_key"
+                 value="<?= $elKey ? '••••••••' : '' ?>"
+                 placeholder="<?= $elKey ? '(mantém a chave atual)' : 'sk_xxxxxxxxxxxxxxxx' ?>"
+                 autocomplete="new-password">
+          <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem"><a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" style="color:#0ea5e9">elevenlabs.io</a> &rsaquo; Settings &rsaquo; API Keys</div>
+        </div>
+        <div>
+          <label class="field-label">Voice ID padrao</label>
+          <input class="field-input" type="text" name="elevenlabs_voice" value="<?= e($elVoice) ?>" placeholder="EXAVITQu4vr4xnSDxMaL">
+          <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem">Voz default quando agente nao define. Veja IDs em <a href="https://elevenlabs.io/app/voice-library" target="_blank" style="color:#0ea5e9">voice-library</a>.</div>
+        </div>
       </div>
       <div class="pcard-foot"><button type="submit" class="btn-save">Salvar</button></div>
     </form>

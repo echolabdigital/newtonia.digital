@@ -64,6 +64,20 @@ function zapi_send_text(string $instance, string $token, string $clientToken, st
 }
 
 /** Pega status da conexão (connected/disconnected) */
+/**
+ * Envia audio (mp3/ogg) via URL publica.
+ * Z-API endpoint: send-audio. Body: { phone, audio: <url>, waveform?, viewOnce? }
+ */
+function zapi_send_audio(string $instance, string $token, string $clientToken, string $phone, string $audioUrl): bool {
+    $phone = preg_replace('/\D/', '', $phone);
+    $r = zapi_request('POST', $instance, $token, $clientToken, 'send-audio', [
+        'phone'    => $phone,
+        'audio'    => $audioUrl,
+        'waveform' => true,  // mostra waveform = parece mais humano
+    ]);
+    return $r['ok'];
+}
+
 function zapi_get_status(string $instance, string $token, string $clientToken): array {
     $r = zapi_request('GET', $instance, $token, $clientToken, 'status');
     if (!$r['ok']) return ['connected' => false, 'phone' => null];

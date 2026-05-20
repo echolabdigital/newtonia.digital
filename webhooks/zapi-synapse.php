@@ -92,7 +92,7 @@ if (str_contains($rawPhone, '@g.us') || str_contains($rawPhone, '-')) {
     exit;
 }
 
-// Extrai texto (texto puro, ou caption de mídia)
+// Extrai texto (texto puro, caption, ou transcribe de audio)
 $inbound = trim(
     $data['text']['message']
     ?? $data['image']['caption']
@@ -101,11 +101,10 @@ $inbound = trim(
     ?? $data['body']
     ?? ''
 );
+$audioUrl = $data['audio']['audioUrl'] ?? ($data['audio']['url'] ?? null);
+$wasAudio = false;
 
-if ($inbound === '') {
-    echo json_encode(['ok' => true, 'skip' => 'empty_text']);
-    exit;
-}
+// (inbound vazio sera tratado apos a checagem de SONAR/voice_enabled)
 
 $senderName = trim($data['senderName'] ?? $data['pushname'] ?? '');
 $zapiMsgId  = $data['messageId'] ?? null;
@@ -127,6 +126,17 @@ if (!$agent) {
     exit;
 }
 
+// ── SONAR: se inbound for audio e voice_enabled, transcrever ──────────────────
+if ($audioUrl && empty($inbound) && !empty($agent['voice_enabled'])) {
+    $transcript = sonar_transcribe($tenantId, $agentId, $audioUrl);
+    if ($transcript) { $inbound = $transcript; $wasAudio = true; }
+}
+
+if ($inbound === '') {
+    echo json_encode(['ok' => true, 'skip' => 'empty_or_unsupported_inbound']);
+    exit;
+}
+
 // ── Conversa ──────────────────────────────────────────────────────────────────
 $conv = synapse_get_or_create_conversation($agentId, $tenantId, $channelId, $phone, $senderName);
 
@@ -141,8 +151,12 @@ if (in_array($conv['status'] ?? '', ['paused', 'human'])) {
     exit;
 }
 
-// Salva mensagem recebida
-$inboundId = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+// Salva mensagem recebida (marca como audio se foi transcrito)
+$inboundType = $wasAudio ? 'audio' : 'text';
+$inboundId = synapse_save_message((int)$conv['id'], 'in', $inbound, $inboundType, $zapiMsgId);
+if ($wasAudio) {
+    db_q('UPDATE messages SET audio_url = ?, transcript = ? WHERE id = ?', [$audioUrl, $inbound, $inboundId]);
+}
 webhook_event_message_received($tenantId, $conv, $inboundId, $inbound);
 
 // ── Keyword triggers (inbound) ────────────────────────────────────────────────
@@ -180,20 +194,29 @@ if (!$response) {
 $response = trim($response);
 
 // ── Salva e envia ─────────────────────────────────────────────────────────────
-$outId = synapse_save_message((int)$conv['id'], 'out', $response, 'text');
+$cfg = json_decode($channel['config_json'] ?? '{}', true);
+
+// SONAR: se cliente mandou audio e agente tem voice_reply ativo, responde em audio
+$replyAsAudio = $wasAudio && !empty($agent['voice_reply']);
+$audioOut     = null;
+if ($replyAsAudio) {
+    $maxChars = max(50, min(2000, (int)($agent['voice_max_chars'] ?? 500)));
+    $voiceText = mb_strlen($response) > $maxChars ? mb_substr($response, 0, $maxChars) : $response;
+    $audioOut = sonar_tts($tenantId, $agentId, $voiceText, $agent['voice_id'] ?? null);
+}
+
+$outId = synapse_save_message((int)$conv['id'], 'out', $response, $audioOut ? 'audio' : 'text');
+if ($audioOut) {
+    db_q('UPDATE messages SET audio_url = ? WHERE id = ?', [$audioOut, $outId]);
+}
 webhook_event_message_sent($tenantId, $conv, $outId, $response, $provider, (string)($agent['model'] ?? ''));
 
-$cfg  = json_decode($channel['config_json'] ?? '{}', true);
-$sent = zapi_send_text(
-    $cfg['instance']     ?? '',
-    $cfg['token']        ?? '',
-    $cfg['client_token'] ?? '',
-    $phone,
-    $response
-);
+$sent = $audioOut
+    ? zapi_send_audio($cfg['instance'] ?? '', $cfg['token'] ?? '', $cfg['client_token'] ?? '', $phone, $audioOut)
+    : zapi_send_text($cfg['instance'] ?? '', $cfg['token'] ?? '', $cfg['client_token'] ?? '', $phone, $response);
 
 if (!$sent) {
-    error_log("[newton/zapi] send_text FAILED — channel={$channelId} phone={$phone}");
+    error_log("[newton/zapi] send FAILED — channel={$channelId} phone={$phone} mode=" . ($audioOut?'audio':'text'));
 }
 
 echo json_encode(['ok' => true, 'sent' => $sent, 'conv' => $conv['id'], 'chars' => strlen($response)]);
