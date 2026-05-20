@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — System settings (chave-valor para configurações globais)
+ * Newton IA — System settings (chave-valor para configurações globais)
  * Usado pra armazenar API keys, webhooks tokens e outras integrações.
  *
  * Acesso: SOMENTE super-admin via UI (admin/integrations.php).
@@ -116,7 +116,7 @@ function asaas_request(string $method, string $path, array $body = null): array
             'accept: application/json',
             'content-type: application/json',
             'access_token: ' . $key,
-            'User-Agent: HERMES.b2b/1.0',
+            'User-Agent: NewtonIA/1.0',
         ],
         CURLOPT_TIMEOUT        => 15,
         CURLOPT_CONNECTTIMEOUT => 5,

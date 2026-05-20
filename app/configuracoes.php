@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Configurações do usuário
+ * Newton IA — Configurações do usuário
  * Preferências de perfil, notificações, módulos e privacidade.
  */
 require_once __DIR__ . '/../config.php';
@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
     // ── Salva preferências (qualquer grupo) ──────────────────────────────────
     if ($action === 'save_prefs') {
-        $allowed = array_keys(hermes_pref_defaults());
+        $allowed = array_keys(newton_pref_defaults());
         $toSave  = [];
         foreach ($allowed as $key) {
             if (isset($_POST[$key])) {
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     // ── Solicitar exclusão de dados ──────────────────────────────────────────
     if ($action === 'request_data_deletion') {
         $reason = trim($_POST['reason'] ?? 'não informado');
-        $subject = 'Solicitação de exclusão de dados — HERMES.b2b';
+        $subject = 'Solicitação de exclusão de dados — Newton IA';
         $body    = '<pre style="font-family:monospace;font-size:.85rem;color:#18181b">'
                  . "Solicitação de exclusão de dados recebida via painel.\n\n"
                  . "Usuário: {$user['name']} &lt;{$user['email']}&gt; (ID {$uid})\n"
@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                  . "Data: " . date('d/m/Y H:i:s') . "\n\n"
                  . "Processar em até 15 dias úteis conforme LGPD art. 18."
                  . '</pre>';
-        hermes_mail('privacidade@hermesb2b.co', $subject, $body);
+        hermes_mail('privacidade@newtonia.digital', $subject, $body);
         audit_log('user.data_deletion_requested', 'user', $uid, ['reason' => $reason]);
         echo json_encode(['ok'=>true]);
         exit;
@@ -123,7 +123,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
 .cfg-section { margin-bottom: 24px; scroll-margin-top: 24px; }
 .cfg-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
 .cfg-card-head { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
-.cfg-card-head .section-icon { width: 32px; height: 32px; border-radius: 8px; background: #f0fdf4; color: var(--hermes); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cfg-card-head .section-icon { width: 32px; height: 32px; border-radius: 8px; background: #eff6ff; color: var(--newton); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .cfg-card-head h2 { font-size: .95rem; font-weight: 700; color: var(--ink); margin: 0; }
 .cfg-card-head p { font-size: .78rem; color: var(--mute); margin: 2px 0 0; line-height: 1.4; }
 .cfg-card-body { padding: 20px; }
@@ -141,7 +141,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
   transition: border-color .15s, box-shadow .15s;
 }
 .cfg-field input:focus, .cfg-field select:focus {
-  outline: none; border-color: var(--hermes); box-shadow: 0 0 0 3px rgba(16,185,129,.1);
+  outline: none; border-color: var(--newton); box-shadow: 0 0 0 3px rgba(14,165,233,.1);
 }
 .cfg-field .hint { font-size: .74rem; color: var(--mute); margin-top: 5px; line-height: 1.4; }
 .cfg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -167,13 +167,13 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
   background: #fff; border-radius: 50%; transition: transform .2s;
   box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
-.toggle-sw input:checked + .slider { background: var(--hermes); }
+.toggle-sw input:checked + .slider { background: var(--newton); }
 .toggle-sw input:checked + .slider::before { transform: translateX(18px); }
 
 /* Botões */
 .cfg-btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 18px; border-radius: 8px;
   font-size: .86rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: all .15s; border: none; }
-.cfg-btn-primary { background: var(--hermes); color: #fff; }
+.cfg-btn-primary { background: var(--newton); color: #fff; }
 .cfg-btn-primary:hover { background: #0ea371; }
 .cfg-btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
 .cfg-btn-ghost:hover { background: var(--bone); }
@@ -186,7 +186,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
 /* Toast inline */
 .cfg-toast { display: none; padding: 8px 14px; border-radius: 7px; font-size: .8rem; font-weight: 600;
   margin-top: 10px; }
-.cfg-toast.success { background: #f0fdf4; border: 1px solid #86efac; color: #166534; display: block; }
+.cfg-toast.success { background: #eff6ff; border: 1px solid #86efac; color: #166534; display: block; }
 .cfg-toast.error   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; display: block; }
 
 /* Info badge do plano */
@@ -358,7 +358,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
           </div>
           <div class="cfg-toggle-row">
             <div class="cfg-toggle-info">
-              <strong>Novidades do HERMES.b2b</strong>
+              <strong>Novidades do Newton IA</strong>
               <span>Novas funcionalidades, atualizações de módulos e dicas de uso</span>
             </div>
             <label class="toggle-sw">
@@ -382,7 +382,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
           </div>
           <div>
             <h2>Preferências do painel</h2>
-            <p>Comportamento geral ao usar o HERMES.b2b</p>
+            <p>Comportamento geral ao usar o Newton IA</p>
           </div>
         </div>
         <div class="cfg-card-body">
@@ -467,7 +467,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
     <div id="pipeline" class="cfg-section">
       <div class="cfg-card">
         <div class="cfg-card-head">
-          <div class="section-icon" style="background:#f0fdf4;color:#059669">
+          <div class="section-icon" style="background:#eff6ff;color:#059669">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           </div>
           <div>
@@ -500,7 +500,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
           <div class="cfg-field" style="margin-bottom:14px">
             <label>Colorir cards por</label>
             <select id="pipeline_card_color" onchange="savePref('pipeline_card_color', this.value, 'pipeline-toast')">
-              <option value="score"  <?= $prefs['pipeline_card_color']==='score' ?'selected':'' ?>>Score HERMES (🔥 Quente / ⭐ Bom / 🌱 Médio / ❄ Frio)</option>
+              <option value="score"  <?= $prefs['pipeline_card_color']==='score' ?'selected':'' ?>>Score Newton (🔥 Quente / ⭐ Bom / 🌱 Médio / ❄ Frio)</option>
               <option value="column" <?= $prefs['pipeline_card_color']==='column'?'selected':'' ?>>Cor da coluna</option>
               <option value="mono"   <?= $prefs['pipeline_card_color']==='mono'  ?'selected':'' ?>>Monocromático (sem cor)</option>
             </select>
@@ -592,7 +592,7 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
             <p>Seus direitos conforme a LGPD</p>
           </div>
           <a href="/privacy.php" target="_blank"
-             style="margin-left:auto;font-size:.78rem;color:var(--hermes);text-decoration:none;white-space:nowrap">
+             style="margin-left:auto;font-size:.78rem;color:var(--newton);text-decoration:none;white-space:nowrap">
             Ver política →
           </a>
         </div>
@@ -602,14 +602,14 @@ app_layout('Configurações', 'config', function() use ($user, $prefs, $plan, $a
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">
             <a href="/privacy.php#direitos" target="_blank"
                style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bone);border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink);font-size:.83rem;font-weight:500;transition:all .12s"
-               onmouseover="this.style.borderColor='var(--hermes)'" onmouseout="this.style.borderColor='var(--line)'">
-              <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9v6M12 6v.01"/></svg>
+               onmouseover="this.style.borderColor='var(--newton)'" onmouseout="this.style.borderColor='var(--line)'">
+              <svg width="14" height="14" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9v6M12 6v.01"/></svg>
               Meus direitos (LGPD art. 18)
             </a>
-            <a href="mailto:privacidade@hermesb2b.co?subject=Portabilidade de dados&body=Olá, gostaria de solicitar a portabilidade dos meus dados. Meu e-mail é: <?= e($user['email']) ?>"
+            <a href="mailto:privacidade@newtonia.digital?subject=Portabilidade de dados&body=Olá, gostaria de solicitar a portabilidade dos meus dados. Meu e-mail é: <?= e($user['email']) ?>"
                style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bone);border:1px solid var(--line);border-radius:8px;text-decoration:none;color:var(--ink);font-size:.83rem;font-weight:500;transition:all .12s"
-               onmouseover="this.style.borderColor='var(--hermes)'" onmouseout="this.style.borderColor='var(--line)'">
-              <svg width="14" height="14" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+               onmouseover="this.style.borderColor='var(--newton)'" onmouseout="this.style.borderColor='var(--line)'">
+              <svg width="14" height="14" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
               Solicitar portabilidade
             </a>
           </div>
@@ -743,7 +743,7 @@ function checkPwStrength(v) {
   if (/\d/.test(v)) s++;
   if (/[^A-Za-z0-9]/.test(v)) s++;
   const bar = document.getElementById('pw-strength-bar');
-  const cols = ['#ef4444','#f97316','#eab308','#10b981','#10b981'];
+  const cols = ['#ef4444','#f97316','#eab308','#0ea5e9','#0ea5e9'];
   bar.style.background = cols[s-1] || 'transparent';
   bar.style.width = (s * 20) + '%';
 }

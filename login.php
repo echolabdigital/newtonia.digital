@@ -1,7 +1,6 @@
 <?php
 require_once __DIR__ . '/config.php';
 
-// Já logado → redireciona para o destino correto
 if (auth_user_id()) {
     header('Location: ' . (auth_is_super() ? '/admin/' : '/app/'));
     exit;
@@ -10,31 +9,21 @@ if (auth_user_id()) {
 $error    = '';
 $redirect = $_GET['redirect'] ?? '/app/';
 
-// ── Rate limiting: máx 10 tentativas / 15 min por IP ─────────────────────────
 function _login_rate_check(): bool {
-    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $ip = trim(explode(',', $ip)[0]); // primeiro IP se vier via proxy
+    $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0')[0]);
     try {
         db_q("CREATE TABLE IF NOT EXISTS login_rate_limits (
-            ip VARCHAR(45) NOT NULL,
-            attempts INT DEFAULT 0,
-            window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (ip)
+            ip VARCHAR(45) NOT NULL, attempts INT DEFAULT 0,
+            window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (ip)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-        // Limpa janelas antigas (manutenção leve)
         db_q("DELETE FROM login_rate_limits WHERE window_start < DATE_SUB(NOW(), INTERVAL 15 MINUTE)");
         $row = db_one("SELECT attempts FROM login_rate_limits WHERE ip = ?", [$ip]);
         return !$row || (int)$row['attempts'] < 10;
-    } catch (\Throwable $e) { return true; } // fail-open para não travar login em erro de DB
+    } catch (\Throwable $e) { return true; }
 }
 function _login_rate_record(bool $failed): void {
-    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-    $ip = trim(explode(',', $ip)[0]);
-    if (!$failed) {
-        // Login OK: zera tentativas desse IP
-        try { db_q("DELETE FROM login_rate_limits WHERE ip = ?", [$ip]); } catch (\Throwable $e) {}
-        return;
-    }
+    $ip = trim(explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0')[0]);
+    if (!$failed) { try { db_q("DELETE FROM login_rate_limits WHERE ip = ?", [$ip]); } catch (\Throwable $e) {} return; }
     try {
         db_q("INSERT INTO login_rate_limits (ip, attempts, window_start) VALUES (?, 1, NOW())
               ON DUPLICATE KEY UPDATE
@@ -46,17 +35,11 @@ function _login_rate_record(bool $failed): void {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!_login_rate_check()) {
-        $error = 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.';
+        $error = 'Muitas tentativas. Aguarde alguns minutos.';
     } else {
-        $result = auth_login(
-            $_POST['email']    ?? '',
-            $_POST['password'] ?? ''
-        );
+        $result = auth_login($_POST['email'] ?? '', $_POST['password'] ?? '');
         _login_rate_record(!$result['ok']);
-        if ($result['ok']) {
-            header('Location: /' . ltrim($result['redirect'], '/'));
-            exit;
-        }
+        if ($result['ok']) { header('Location: /' . ltrim($result['redirect'], '/')); exit; }
         $error = $result['error'];
     }
 }
@@ -65,68 +48,236 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Entrar — Newton IA</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Entrar — HERMES.b2b</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --hermes:#10b981; --indigo:#3d3dff; --coral:#be123c;
-    --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef;
-  }
-  body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .wrap { width: 100%; max-width: 420px; }
+:root {
+  /* DS v3 tokens */
+  --newton:      #0EA5E9;
+  --newton-dark: #0284c7;
+  --indigo:      #3D3DFF;
+  --coral:       #BE123C;
+  --ink:         #0a0a0f;
+  --fg-2:        #4a4a55;
+  --fg-3:        #7a7a86;
+  --fg-4:        #a8a8b3;
+  --bg:          #fafaf7;
+  --bg-3:        #ebebe6;
+  --surface:     #ffffff;
+  --line:        #e4e4dd;
+  --line-2:      #d4d4cc;
+  --font-display: 'Geist', system-ui, -apple-system, sans-serif;
+  --font-mono:    'Geist Mono', 'SF Mono', Menlo, monospace;
+  --radius:      10px;
+  --radius-sm:   6px;
+  --shadow:      0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.04);
+}
 
-  .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px; text-decoration: none; color: inherit; }
-  .brand-icon { width: 44px; height: 44px; border-radius: 11px; background: var(--hermes); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16,185,129,.25); }
-  .brand-text { font-family: 'Geist Mono', monospace; font-weight: 700; font-size: 1.2rem; line-height: 1.1; }
-  .brand-text .b2b { color: var(--hermes); font-size: .76em; }
+body {
+  font-family: var(--font-display);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.01em;
+}
 
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 32px; box-shadow: 0 1px 6px rgba(0,0,0,.04); }
-  .card h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; text-align: center; letter-spacing: -0.02em; }
-  .card .sub { color: var(--mute); font-size: .88rem; text-align: center; margin-bottom: 22px; }
+.wrap { width: 100%; max-width: 400px; }
 
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-family: 'Geist Mono', monospace; font-size: .62rem; color: var(--mute); text-transform: uppercase; letter-spacing: .06em; font-weight: 600; margin-bottom: 6px; }
-  .field input { width: 100%; padding: 11px 13px; border: 1px solid var(--line); border-radius: 8px; font-size: .92rem; font-family: inherit; background: #fff; color: var(--ink); transition: all .15s; }
-  .field input:focus { outline: none; border-color: var(--hermes); box-shadow: 0 0 0 3px rgba(16,185,129,.1); }
+/* Logo — estilo Echo_Lab DS v3 */
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 28px;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-icon {
+  width: 42px; height: 42px;
+  border-radius: 11px;
+  background: var(--newton);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 10px rgba(14,165,233,.35);
+}
+.brand-name {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  line-height: 1;
+}
+.brand-name .ia {
+  color: var(--newton);
+}
 
-  .submit { width: 100%; padding: 12px; background: var(--hermes); color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .15s; margin-top: 6px; }
-  .submit:hover { background: #0ea371; }
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+}
 
-  .forgot { display: block; text-align: right; font-size: .78rem; color: var(--mute); margin-top: -4px; margin-bottom: 14px; text-decoration: none; }
-  .forgot:hover { color: var(--hermes); }
+.card h1 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-bottom: 4px;
+  text-align: center;
+  color: var(--ink);
+}
+.card .sub {
+  font-size: .875rem;
+  color: var(--fg-3);
+  text-align: center;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
 
-  .error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 11px 14px; border-radius: 8px; font-size: .85rem; margin-bottom: 18px; }
+/* Campos */
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: .6rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-bottom: 7px;
+}
+.field input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-display);
+  font-size: .92rem;
+  background: var(--surface);
+  color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+  outline: none;
+}
+.field input:focus {
+  border-color: var(--newton);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.15);
+}
 
-  .signup-cta { text-align: center; margin-top: 18px; font-size: .88rem; color: var(--mute); }
-  .signup-cta a { color: var(--hermes); font-weight: 600; text-decoration: none; }
-  .signup-cta a:hover { color: #0ea371; }
+/* Esqueci */
+.forgot {
+  display: block;
+  text-align: right;
+  font-size: .78rem;
+  color: var(--fg-4);
+  margin-top: -6px;
+  margin-bottom: 16px;
+  text-decoration: none;
+  transition: color .15s;
+}
+.forgot:hover { color: var(--newton); }
 
-  .foot { text-align: center; margin-top: 18px; font-size: .72rem; color: var(--mute); }
-  .foot a { color: var(--mute); text-decoration: none; }
-  .foot a:hover { color: var(--hermes); }
+/* Botão primário — DS v3: ink fundo, hover → newton */
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 13px 24px;
+  background: var(--ink);
+  color: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: .88rem;
+  font-weight: 500;
+  letter-spacing: .02em;
+  text-align: center;
+  cursor: pointer;
+  transition: background .18s, box-shadow .18s, transform .18s, border-color .18s;
+  white-space: nowrap;
+}
+.btn-primary:hover {
+  background: var(--newton);
+  border-color: var(--newton);
+  box-shadow: 0 1px 0 rgba(14,165,233,.4), 0 8px 24px -8px rgba(14,165,233,.35);
+  transform: translateY(-1px);
+}
+
+/* Erro */
+.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: .84rem;
+  margin-bottom: 18px;
+}
+
+/* CTA cadastro */
+.signup-cta {
+  text-align: center;
+  margin-top: 20px;
+  font-size: .85rem;
+  color: var(--fg-3);
+}
+.signup-cta a {
+  color: var(--newton);
+  font-weight: 600;
+  text-decoration: none;
+}
+.signup-cta a:hover { color: var(--newton-dark); }
+
+/* Footer */
+.foot {
+  text-align: center;
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: .68rem;
+  letter-spacing: .06em;
+  color: var(--fg-4);
+}
+.foot a { color: var(--fg-4); text-decoration: none; }
+.foot a:hover { color: var(--newton); }
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: var(--line);
+  margin: 22px 0;
+}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <a class="brand" href="/">
+  <a class="brand" href="https://newtonia.digital">
+    <!-- Favicon inline: chevron > branco + dot coral sobre fundo newton -->
     <div class="brand-icon">
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 7l5 5-5 5"/><line x1="13" y1="17" x2="20" y2="17"/>
+      <svg viewBox="0 0 100 100" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 20 L58 50 L22 80" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <rect x="62" y="68" width="24" height="11" rx="5.5" fill="#BE123C"/>
       </svg>
     </div>
-    <div class="brand-text">HERMES<span class="b2b">.b2b</span></div>
+    <div class="brand-name">Newton <span class="ia">IA</span></div>
   </a>
 
   <div class="card">
     <h1>Bem-vindo de volta</h1>
-    <p class="sub">Entre na sua conta pra continuar prospectando.</p>
+    <p class="sub">Entre na sua conta para gerenciar seus agentes de IA.</p>
 
     <?php if ($error): ?>
       <div class="error">⚠ <?= htmlspecialchars($error) ?></div>
@@ -136,15 +287,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <input type="hidden" name="_redirect" value="<?= htmlspecialchars($redirect) ?>">
       <div class="field">
         <label>E-mail</label>
-        <input type="email" name="email" required autofocus>
+        <input type="email" name="email" required autofocus
+               value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
+               placeholder="seu@email.com">
       </div>
       <div class="field">
         <label>Senha</label>
-        <input type="password" name="password" required>
+        <input type="password" name="password" required placeholder="••••••••">
       </div>
       <a href="/forgot-password.php" class="forgot">Esqueci minha senha</a>
-      <button type="submit" class="submit">Entrar</button>
+      <button type="submit" class="btn-primary">Entrar →</button>
     </form>
+
+    <div class="divider"></div>
 
     <p class="signup-cta">
       Não tem conta? <a href="/signup.php">Comece grátis →</a>
@@ -152,9 +307,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <div class="foot">
-    <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a> · by echo_lab ·
-    <a href="/terms.php">Termos</a> · <a href="/privacy.php">Privacidade</a>
+    <a href="https://newtonia.digital">newtonia.digital</a>
+    &nbsp;·&nbsp; by echo_lab
+    &nbsp;·&nbsp; <a href="/terms.php">Termos</a>
+    &nbsp;·&nbsp; <a href="/privacy.php">Privacidade</a>
   </div>
+
 </div>
 <?php require_once __DIR__ . '/core/lgpd_banner.php'; ?>
 </body>

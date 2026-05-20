@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $plans = hermes_plans_list();
 $packs = hermes_lead_packs();
 
-admin_layout('Planos HERMES.b2b', 'plans', function() use ($plans, $packs) {
+admin_layout('Planos Newton IA', 'plans', function() use ($plans, $packs) {
 ?>
 <style>
   /* HERMES tokens locais */
@@ -52,14 +52,14 @@ admin_layout('Planos HERMES.b2b', 'plans', function() use ($plans, $packs) {
   @media (max-width: 1100px) { .hp-grid { grid-template-columns:repeat(2, 1fr); } }
 
   .hp-card { background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:20px; display:flex; flex-direction:column; position:relative; overflow:hidden; transition:all .15s; }
-  .hp-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.06); border-color:#10b981; }
-  .hp-card.popular { border-color:#10b981; box-shadow:0 4px 14px rgba(16,185,129,.12); }
-  .hp-card.popular::before { content:'⭐ Mais popular'; position:absolute; top:0; right:0; background:#10b981; color:#fff; font-family:'Geist Mono',monospace; font-size:.56rem; padding:3px 10px; border-radius:0 14px 0 8px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+  .hp-card:hover { box-shadow:0 4px 14px rgba(0,0,0,.06); border-color:#0ea5e9; }
+  .hp-card.popular { border-color:#0ea5e9; box-shadow:0 4px 14px rgba(14,165,233,.12); }
+  .hp-card.popular::before { content:'⭐ Mais popular'; position:absolute; top:0; right:0; background:#0ea5e9; color:#fff; font-family:'Geist Mono',monospace; font-size:.56rem; padding:3px 10px; border-radius:0 14px 0 8px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
   .hp-card .tier { font-family:'Geist Mono',monospace; font-size:.62rem; color:#6b7280; text-transform:uppercase; letter-spacing:.08em; font-weight:600; margin-bottom:6px; }
   .hp-card h3 { font-size:1.2rem; font-weight:700; margin:0 0 8px; color:#111827; }
   .hp-card .price { font-size:1.8rem; font-weight:700; color:#111827; letter-spacing:-0.02em; line-height:1; }
   .hp-card .price small { font-size:.7rem; color:#6b7280; font-weight:500; }
-  .hp-card .annual { font-family:'Geist Mono',monospace; font-size:.7rem; color:#10b981; margin-top:4px; font-weight:600; }
+  .hp-card .annual { font-family:'Geist Mono',monospace; font-size:.7rem; color:#0ea5e9; margin-top:4px; font-weight:600; }
   .hp-card .annual.disabled { color:#9ca3af; }
   .hp-divider { border-top:1px solid #f3f4f6; margin:14px 0; }
   .hp-feat { display:flex; align-items:center; justify-content:space-between; padding:5px 0; font-size:.8rem; color:#374151; }
@@ -72,7 +72,7 @@ admin_layout('Planos HERMES.b2b', 'plans', function() use ($plans, $packs) {
   .hp-badges .priv { background:#fef3c7; color:#92400e; }
   .hp-edit { margin-top:auto; padding-top:14px; }
   .hp-edit-btn { width:100%; padding:8px 12px; background:#fff; border:1px solid #e5e7eb; border-radius:7px; cursor:pointer; font-size:.82rem; font-weight:500; color:#374151; font-family:inherit; transition:all .15s; }
-  .hp-edit-btn:hover { background:#f9fafb; border-color:#10b981; color:#059669; }
+  .hp-edit-btn:hover { background:#f9fafb; border-color:#0ea5e9; color:#0284c7; }
 
   /* Lead Packs */
   .hp-packs { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px 22px; margin-bottom:18px; }
@@ -83,30 +83,30 @@ admin_layout('Planos HERMES.b2b', 'plans', function() use ($plans, $packs) {
   .hp-pack { background:#f9fafb; border-radius:10px; padding:14px; text-align:center; }
   .hp-pack .pl-leads { font-family:'Geist Mono',monospace; font-size:.66rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; }
   .hp-pack .pl-num { font-size:1.4rem; font-weight:700; color:#111827; margin:4px 0 6px; }
-  .hp-pack .pl-price { font-size:1rem; font-weight:600; color:#10b981; }
+  .hp-pack .pl-price { font-size:1rem; font-weight:600; color:#0ea5e9; }
   .hp-pack .pl-per { font-family:'Geist Mono',monospace; font-size:.66rem; color:#6b7280; margin-top:4px; }
 
   /* Edit form */
-  .hp-edit-panel { display:none; background:#fff; border:1px solid #10b981; border-radius:12px; padding:22px; margin-bottom:18px; }
+  .hp-edit-panel { display:none; background:#fff; border:1px solid #0ea5e9; border-radius:12px; padding:22px; margin-bottom:18px; }
   .hp-edit-panel.open { display:block; }
   .hp-edit-panel h3 { font-size:1.05rem; margin:0 0 14px; color:#111827; }
   .hp-edit-form { display:grid; grid-template-columns:repeat(2, 1fr); gap:14px; }
   .hp-edit-form .full { grid-column:1 / -1; }
   .hp-edit-form label { font-family:'Geist Mono',monospace; font-size:.62rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; font-weight:600; display:block; margin-bottom:4px; }
   .hp-edit-form input, .hp-edit-form select { width:100%; padding:8px 12px; border:1px solid #e5e7eb; border-radius:7px; font-size:.86rem; font-family:inherit; }
-  .hp-edit-form input:focus, .hp-edit-form select:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.1); }
+  .hp-edit-form input:focus, .hp-edit-form select:focus { outline:none; border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.1); }
   .hp-edit-form .checkrow { display:flex; align-items:center; gap:6px; }
   .hp-edit-form .checkrow input { width:auto; }
   .hp-edit-form .checkrow label { margin:0; font-size:.8rem; color:#111827; text-transform:none; letter-spacing:normal; font-weight:500; font-family:inherit; }
   .hp-actions { display:flex; gap:10px; justify-content:flex-end; padding-top:16px; border-top:1px solid #f3f4f6; margin-top:16px; }
   .hp-btn { padding:9px 18px; border:none; border-radius:7px; font-size:.86rem; font-weight:600; cursor:pointer; font-family:inherit; }
-  .hp-btn-save { background:#10b981; color:#fff; }
+  .hp-btn-save { background:#0ea5e9; color:#fff; }
   .hp-btn-save:hover { background:#0ea371; }
   .hp-btn-cancel { background:#fff; color:#374151; border:1px solid #e5e7eb; }
 </style>
 
 <div class="hp-hero">
-  <h2>💰 Planos HERMES.b2b</h2>
+  <h2>💰 Planos Newton IA</h2>
   <p>4 tiers + Lead Packs avulsos. Edição não afeta tenants já criados — mudanças se aplicam só pra novos assinantes ou ao trocar plano.</p>
 </div>
 

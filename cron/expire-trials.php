@@ -1,146 +1,89 @@
 <?php
 /**
- * HERMES.b2b — Cron: gerenciar ciclo de vida dos trials
+ * Newton IA — Cron: gerenciamento de trials
  *
- * Executa 1× ao dia e faz duas passagens:
- *   1. Aviso: tenants que expiram em ~24h → e-mail de alerta
- *   2. Expirar: tenants com trial vencido sem pagamento → suspende + e-mail
+ * 1. Avisa 1 dia antes de expirar   → email_trial_expirando()
+ * 2. Expira e suspende ao vencer     → email_trial_expirado()
  *
- * Crontab (06:00 UTC = 03:00 BRT):
- *   0 6 * * * php /home/hermesb2b.co/app.hermesb2b.co/public_html/cron/expire-trials.php >> /var/log/hermes-cron.log 2>&1
+ * Crontab:
+ *   0 8 * * * php /home/newtonia.digital/public_html/cron/expire-trials.php
  */
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../core/emails.php';
 
-if (php_sapi_name() !== 'cli' && ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1') {
-    http_response_code(403);
-    exit('Forbidden');
-}
+$now = date('Y-m-d H:i:s');
+$ok = 0; $warned = 0;
 
-define('TRIAL_GRACE_DAYS', 3);
+// ── 1) Aviso 1 dia antes de expirar ──────────────────────────────────────────
+$expiring_soon = db_all(
+    "SELECT t.id, t.name, t.email, t.trial_started_at, p.trial_days
+     FROM tenants t
+     JOIN plans p ON p.id = t.plan_id
+     WHERE t.status = 'trial'
+       AND p.trial_days > 0
+       AND t.trial_started_at IS NOT NULL
+       AND DATE(TIMESTAMPADD(DAY, p.trial_days, t.trial_started_at)) = DATE(NOW() + INTERVAL 1 DAY)
+       AND NOT EXISTS (
+           SELECT 1 FROM user_preferences up
+           JOIN tenant_users tu ON tu.user_id = up.user_id
+           WHERE tu.tenant_id = t.id AND up.pref_key = 'trial_warning_sent' AND up.pref_value = '1'
+       )"
+);
 
-$_SERVER['DOCUMENT_ROOT'] = dirname(__DIR__);
-require_once dirname(__DIR__) . '/config.php';
-require_once dirname(__DIR__) . '/core/emails.php';
-
-$now   = date('Y-m-d H:i:s');
-$label = "[{$now}] expire-trials";
-
-echo "{$label} — iniciando\n";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PASSAGEM 1 — Aviso de expiry (24h antes)
-// Tenants criados entre (GRACE-1) e GRACE dias atrás = expiram nas próximas 24h
-// ─────────────────────────────────────────────────────────────────────────────
-try {
-    $expiring = db_all(
-        "SELECT t.id, t.name,
-                u.email, u.name AS user_name
-         FROM tenants t
-         JOIN tenant_users tu ON tu.tenant_id = t.id AND tu.role = 'owner'
-         JOIN users u         ON u.id = tu.user_id
-         WHERE t.status = 'pending'
-           AND t.trial_warning_sent = 0
-           AND COALESCE(t.trial_started_at, t.created_at)
-               BETWEEN DATE_SUB(NOW(), INTERVAL ? DAY)
-                   AND DATE_SUB(NOW(), INTERVAL ? DAY)",
-        [TRIAL_GRACE_DAYS, TRIAL_GRACE_DAYS - 1]   // entre 3 e 2 dias atrás → expira em <24h
-    );
-
-    foreach ($expiring as $row) {
-        $tid = (int) $row['id'];
-        try {
-            [$subj, $body] = email_trial_expirando($row['user_name'], $row['name']);
-            $sent = hermes_mail($row['email'], $subj, $body);
-            db_q("UPDATE tenants SET trial_warning_sent = 1 WHERE id = ?", [$tid]);
-            echo "  [AVISO] tenant #{$tid} ({$row['name']}) — warning enviado para {$row['email']}" . ($sent ? '' : ' (mail() falhou)') . "\n";
-        } catch (\Throwable $e) {
-            echo "  [AVISO-ERRO] tenant #{$tid} — {$e->getMessage()}\n";
-        }
-    }
-
-    if (empty($expiring)) {
-        echo "  [AVISO] nenhum trial expirando nas próximas 24h\n";
-    }
-} catch (\Throwable $e) {
-    echo "{$label} — ERRO passagem 1: {$e->getMessage()}\n";
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PASSAGEM 2 — Suspender trials vencidos
-// ─────────────────────────────────────────────────────────────────────────────
-try {
-    $candidates = db_all(
-        "SELECT t.id, t.name,
-                COALESCE(t.trial_started_at, t.created_at) AS trial_started,
-                u.email, u.name AS user_name
-         FROM tenants t
-         LEFT JOIN tenant_users tu ON tu.tenant_id = t.id AND tu.role = 'owner'
-         LEFT JOIN users u         ON u.id = tu.user_id
-         WHERE t.status = 'pending'
-           AND COALESCE(t.trial_started_at, t.created_at) < DATE_SUB(NOW(), INTERVAL ? DAY)",
-        [TRIAL_GRACE_DAYS]
-    );
-} catch (\Throwable $e) {
-    echo "{$label} — ERRO ao buscar candidatos: {$e->getMessage()}\n";
-    exit(1);
-}
-
-if (empty($candidates)) {
-    echo "  [EXPIRAR] nenhum trial vencido\n";
-    echo "{$label} — concluído\n";
-    exit(0);
-}
-
-echo "  [EXPIRAR] " . count($candidates) . " candidato(s) encontrado(s)\n";
-
-$suspended = 0;
-$skipped   = 0;
-
-foreach ($candidates as $tenant) {
-    $tid      = (int) $tenant['id'];
-    $name     = $tenant['name'];
-    $email    = $tenant['email'] ?? '';
-    $username = $tenant['user_name'] ?? $name;
-
-    // Pula se já tem pagamento confirmado
-    $paid = (int) db_val(
-        "SELECT COUNT(*) FROM asaas_payments WHERE tenant_id = ? AND status IN ('RECEIVED','CONFIRMED')",
-        [$tid]
-    );
-    if ($paid > 0) {
-        echo "  [SKIP] tenant #{$tid} ({$name}) — pagamento confirmado\n";
-        $skipped++;
-        continue;
-    }
-
-    // Pula se tem subscription ativa
-    $active_sub = (int) db_val(
-        "SELECT COUNT(*) FROM asaas_subscriptions WHERE tenant_id = ? AND status IN ('ACTIVE','PENDING')",
-        [$tid]
-    );
-    if ($active_sub > 0) {
-        echo "  [SKIP] tenant #{$tid} ({$name}) — subscription ativa\n";
-        $skipped++;
-        continue;
-    }
-
-    // Suspende
+foreach ($expiring_soon as $tenant) {
+    if (!$tenant['email']) continue;
     try {
-        db_q("UPDATE tenants SET status = 'suspended', suspended_at = NOW() WHERE id = ?", [$tid]);
-        echo "  [SUSPENDED] tenant #{$tid} ({$name})\n";
-        $suspended++;
+        [$subj, $body] = email_trial_expirando($tenant['name'], 1);
+        hermes_mail($tenant['email'], $subj, $body);
 
-        if ($email) {
-            try {
-                [$subj, $body] = email_trial_expirado($username, $name);
-                hermes_mail($email, $subj, $body);
-                echo "  [EMAIL] trial expirado → {$email}\n";
-            } catch (\Throwable $e) {
-                echo "  [EMAIL-ERRO] {$e->getMessage()}\n";
-            }
+        // Marca que o aviso foi enviado (via owner)
+        $owner_id = (int) db_val(
+            'SELECT user_id FROM tenant_users WHERE tenant_id = ? AND role = "owner" LIMIT 1',
+            [$tenant['id']]
+        );
+        if ($owner_id) {
+            db_q(
+                'INSERT INTO user_preferences (user_id, pref_key, pref_value) VALUES (?, "trial_warning_sent", "1")
+                 ON DUPLICATE KEY UPDATE pref_value = "1"',
+                [$owner_id]
+            );
         }
+
+        audit_log(0, (int)$tenant['id'], 'trial_warning_sent', 'tenant', (string)$tenant['id'], null);
+        echo "[{$now}] Aviso enviado: tenant #{$tenant['id']} — {$tenant['name']}\n";
+        $warned++;
     } catch (\Throwable $e) {
-        echo "  [ERRO] tenant #{$tid} — {$e->getMessage()}\n";
+        error_log('[cron] aviso trial tenant #' . $tenant['id'] . ': ' . $e->getMessage());
     }
 }
 
-echo "{$label} — concluído. Suspensos: {$suspended} | Ignorados: {$skipped}\n";
+// ── 2) Expirar trials vencidos ────────────────────────────────────────────────
+$expired = db_all(
+    "SELECT t.id, t.name, t.email, t.trial_started_at, p.trial_days
+     FROM tenants t
+     JOIN plans p ON p.id = t.plan_id
+     WHERE t.status = 'trial'
+       AND p.trial_days > 0
+       AND t.trial_started_at IS NOT NULL
+       AND TIMESTAMPADD(DAY, p.trial_days, t.trial_started_at) < NOW()"
+);
+
+foreach ($expired as $tenant) {
+    db_q("UPDATE tenants SET status = 'expired', suspended_at = NOW() WHERE id = ?", [$tenant['id']]);
+    audit_log(0, (int)$tenant['id'], 'trial_expired', 'tenant', (string)$tenant['id'],
+        json_encode(['trial_days' => $tenant['trial_days'], 'started' => $tenant['trial_started_at']]));
+
+    if ($tenant['email']) {
+        try {
+            [$subj, $body] = email_trial_expirado($tenant['name']);
+            hermes_mail($tenant['email'], $subj, $body);
+        } catch (\Throwable $e) {
+            error_log('[cron] email trial expirado tenant #' . $tenant['id'] . ': ' . $e->getMessage());
+        }
+    }
+
+    echo "[{$now}] Trial expirado: tenant #{$tenant['id']} — {$tenant['name']}\n";
+    $ok++;
+}
+
+echo "[{$now}] Cron finalizado: {$ok} expirado(s), {$warned} aviso(s) enviado(s).\n";

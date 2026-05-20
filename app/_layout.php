@@ -28,6 +28,30 @@ function app_layout(string $title, string $active, callable $body): void {
             'sub'=>'Histórico · WhatsApp',
             'color'=>'#38bdf8'],
 
+        ['k'=>'inbox', 'label'=>'Inbox', 'href'=>'inbox.php',
+            'icon'=>'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4',
+            'sub'=>'Handoff humano',
+            'color'=>'#7c3aed'],
+
+        ['type'=>'section', 'label'=>'PULSE'],
+
+        ['k'=>'pulse', 'label'=>'Agenda', 'href'=>'pulse.php',
+            'icon'=>'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+            'sub'=>'Reunioes · Lembretes',
+            'color'=>'#22c55e'],
+
+        ['type'=>'section', 'label'=>'FLUX'],
+
+        ['k'=>'flux', 'label'=>'Leads & Campanhas', 'href'=>'flux.php',
+            'icon'=>'M13 10V3L4 14h7v7l9-11h-7z',
+            'sub'=>'Extracao · Campanhas IA',
+            'color'=>'#f59e0b'],
+
+        ['k'=>'api-keys', 'label'=>'API & Webhooks', 'href'=>'api-keys.php',
+            'icon'=>'M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z',
+            'sub'=>'REST · Make · n8n',
+            'color'=>'#f59e0b'],
+
         ['type'=>'section', 'label'=>'CONFIG'],
 
         ['k'=>'config', 'label'=>'Configurações', 'href'=>'configuracoes.php',
@@ -77,7 +101,7 @@ function app_layout(string $title, string $active, callable $body): void {
   /* Echo_Lab Tech — palette oficial */
   --indigo:    #3d3dff;  /* Indigo Elétrico — primary, master (95% das aplicações) */
   --coral:     #be123c;  /* Coral Sinal — alertas, CTAs, estados ativos */
-  --hermes:    #0ea5e9;  /* Cor do produto NEWTON IA (sky blue) */
+  --newton:    #0ea5e9;  /* Cor do produto NEWTON IA (sky blue) */
 
   /* Neutros LIGHT (warm grays — não puro preto) */
   --ink:       #18181b;  /* texto body */
@@ -86,9 +110,8 @@ function app_layout(string $title, string $active, callable $body): void {
   --paper:     #fafaf7;  /* card surface */
   --bone:      #f6f4ef;  /* página bg */
 
-  /* Alias --cr aponta para HERMES (a cor do PRODUTO).
-     Indigo Elétrico permanece como token da marca Echo_Lab (usado pontualmente). */
-  --cr:        var(--hermes);
+  /* Alias --cr aponta para NEWTON (a cor do PRODUTO). */
+  --cr:        var(--newton);
   --cr-glow:   rgba(14, 165, 233, 0.08);
   --ink-2:     #3a3a40;
   --ink-3:     var(--mute);
@@ -127,16 +150,16 @@ code, pre, .mono, [data-mono] { font-family: 'Geist Mono', 'JetBrains Mono', Con
 .sidebar.pinned { width: 220px; }
 
 .brand { display: flex; align-items: center; gap: .65rem; text-decoration: none; margin-bottom: 1.2rem; padding: 0 .25rem; }
-/* Ícone echo_lab carrega a cor do produto que ele representa = HERMES (verde esmeralda) */
-.logo-box { width: 36px; height: 36px; border-radius: 9px; background: var(--hermes); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: background .15s; box-shadow: 0 1px 3px rgba(14, 165, 233, .25); }
-.logo-box:hover { background: #0ea371; }
+/* Ícone Newton IA — cor do produto sky blue */
+.logo-box { width: 36px; height: 36px; border-radius: 9px; background: var(--newton); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; transition: background .15s; box-shadow: 0 1px 3px rgba(14, 165, 233, .25); }
+.logo-box:hover { background: #0284c7; }
 .logo-text { font-family: 'Geist Mono', monospace; font-weight: 700; font-size: .95rem; color: var(--ink); letter-spacing: -0.01em; line-height: 1.1; white-space: nowrap; opacity: 0; transition: opacity .15s; }
-.logo-b2b  { font-family: 'Geist Mono', monospace; font-weight: 600; font-size: .76em; color: var(--hermes); letter-spacing: 0; margin-left: 1px; }
-/* Botão "Conheça →" abaixo da brand — só aparece com sidebar expandida */
+.logo-ia   { font-family: 'Geist Mono', monospace; font-weight: 600; font-size: .76em; color: var(--newton); letter-spacing: 0; margin-left: 1px; }
+/* Botão "Saiba mais →" abaixo da brand — só aparece com sidebar expandida */
 .logo-about { display: inline-block; margin-left: 48px; margin-top: -8px; margin-bottom: 12px; font-family: 'Geist Mono', monospace; font-size: .62rem; color: var(--mute); text-decoration: none; letter-spacing: .04em; opacity: 0; transition: opacity .15s, color .12s; padding: 3px 7px; border-radius: 4px; }
 .sidebar:hover .logo-about, .sidebar.pinned .logo-about { opacity: 1; }
-.logo-about:hover { color: var(--hermes); background: rgba(16,185,129,.08); }
-.logo-sub  { font-family: 'Geist Mono', monospace; font-size: .56rem; color: var(--hermes); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-top: .15rem; white-space: nowrap; opacity: 0; transition: opacity .15s; }
+.logo-about:hover { color: var(--newton); background: rgba(14,165,233,.08); }
+.logo-sub  { font-family: 'Geist Mono', monospace; font-size: .56rem; color: var(--newton); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-top: .15rem; white-space: nowrap; opacity: 0; transition: opacity .15s; }
 .sidebar:hover .logo-text, .sidebar:hover .logo-sub, .sidebar.pinned .logo-text, .sidebar.pinned .logo-sub { opacity: 1; }
 
 .nav-menu  { display: flex; flex-direction: column; gap: .2rem; flex: 1; overflow-y: auto; overflow-x: hidden; min-height: 0; }
@@ -146,7 +169,7 @@ code, pre, .mono, [data-mono] { font-family: 'Geist Mono', 'JetBrains Mono', Con
 .nav-item:hover { background: var(--bone); color: var(--ink); }
 .nav-item.active { background: var(--cr-glow); color: var(--cr); }
 
-/* Itens com cor de produto: ícone sempre na cor do módulo (variação verde HERMES) */
+/* Itens com cor de produto: ícone sempre na cor do módulo */
 .nav-item.has-color svg { color: var(--item-color); }
 .nav-item.has-color:hover { background: color-mix(in srgb, var(--item-color) 8%, var(--bone)); }
 .nav-item.has-color.active { background: color-mix(in srgb, var(--item-color) 12%, transparent); color: var(--item-color); }
@@ -154,7 +177,7 @@ code, pre, .mono, [data-mono] { font-family: 'Geist Mono', 'JetBrains Mono', Con
 .nav-item.has-color.active .nav-sub { color: var(--item-color); }
 
 /* Faixa lateral indicando item ativo */
-.nav-item.active::before { content: ''; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 3px; background: var(--hermes); border-radius: 99px; }
+.nav-item.active::before { content: ''; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 3px; background: var(--newton); border-radius: 99px; }
 
 .nav-item.soon { opacity: .55; cursor: not-allowed; }
 .nav-item.soon:hover { background: transparent; color: var(--ink-2); }
@@ -165,15 +188,15 @@ code, pre, .mono, [data-mono] { font-family: 'Geist Mono', 'JetBrains Mono', Con
 .nav-item span:not(.badge-soon) { opacity: 0; transition: opacity .15s; }
 .sidebar:hover .nav-item span, .sidebar.pinned .nav-item span { opacity: 1; }
 
-/* Sub-label dos módulos HERMES (Prospecção, Gestão comercial, etc.) */
+/* Sub-label dos módulos SYNAPSE */
 .nav-label    { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .nav-main     { font-weight: 500; font-size: .82rem; letter-spacing: -0.01em; }
 .nav-sub      { font-family: 'Geist Mono', monospace; font-size: .58rem; color: var(--mute); font-weight: 500; margin-top: 2px; opacity: 0; transition: opacity .15s; letter-spacing: .02em; }
 .sidebar:hover .nav-sub, .sidebar.pinned .nav-sub { opacity: .85; }
 .nav-item.active .nav-main { font-weight: 600; }
-.nav-item.active .nav-sub  { color: var(--hermes); opacity: 1; }
+.nav-item.active .nav-sub  { color: var(--newton); opacity: 1; }
 
-/* Section headers: HERMES / CONFIG (estilo terminal Geist Mono) */
+/* Section headers: SYNAPSE / CONFIG (estilo terminal Geist Mono) */
 .nav-section  { font-family: 'Geist Mono', monospace; padding: .9rem .65rem .35rem; font-size: .58rem; font-weight: 600; color: var(--mute); letter-spacing: .14em; text-transform: uppercase; opacity: 0; transition: opacity .15s; white-space: nowrap; }
 .nav-section::before { content: '// '; opacity: .5; }
 .sidebar:hover .nav-section, .sidebar.pinned .nav-section { opacity: 1; }
@@ -246,7 +269,7 @@ $bottomItems = array_slice(
       <path d="M5 7l5 5-5 5"/><line x1="13" y1="17" x2="20" y2="17"/>
     </svg>
   </div>
-  <span class="mob-brand-name">HERMES<span>.b2b</span></span>
+  <span class="mob-brand-name">Newton<span class="logo-ia"> IA</span></span>
 </div>
 
 <!-- ── Overlay ────────────────────────────────────────────────── -->
@@ -256,13 +279,14 @@ $bottomItems = array_slice(
 <div class="mob-drawer" id="mob-drawer">
   <a href="index.php" class="brand">
     <div class="logo-box">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 7l5 5-5 5"/><line x1="13" y1="17" x2="20" y2="17"/>
+      <svg viewBox="0 0 100 100" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 20 L58 50 L22 80" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <rect x="62" y="68" width="24" height="11" rx="5.5" fill="#BE123C"/>
       </svg>
     </div>
     <div>
-      <div class="logo-text">HERMES<span class="logo-b2b">.b2b</span></div>
-      <div class="logo-sub">echo_lab · comercial</div>
+      <div class="logo-text">Newton<span class="logo-ia"> IA</span></div>
+      <div class="logo-sub">echo_lab · synapse</div>
     </div>
   </a>
   <nav class="nav-menu">
@@ -305,19 +329,18 @@ $bottomItems = array_slice(
 
 <aside class="sidebar">
   <a href="index.php" class="brand">
-    <!-- Identidade do PRODUTO: HERMES (echo_lab) — não vem de tenant_brand -->
-    <div class="logo-box" title="HERMES.b2b · hermesb2b.co">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M5 7l5 5-5 5"/>
-        <line x1="13" y1="17" x2="20" y2="17"/>
+    <div class="logo-box" title="Newton IA · newtonia.digital">
+      <svg viewBox="0 0 100 100" width="20" height="20" xmlns="http://www.w3.org/2000/svg">
+        <path d="M22 20 L58 50 L22 80" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <rect x="62" y="68" width="24" height="11" rx="5.5" fill="#BE123C"/>
       </svg>
     </div>
     <div>
-      <div class="logo-text">HERMES<span class="logo-b2b">.b2b</span></div>
-      <div class="logo-sub">echo_lab · comercial</div>
+      <div class="logo-text">Newton<span class="logo-ia"> IA</span></div>
+      <div class="logo-sub">echo_lab · synapse</div>
     </div>
   </a>
-  <a href="sobre.php" class="logo-about" title="Conheça o HERMES.b2b">Conheça →</a>
+  <a href="/app/" class="logo-about" title="Newton IA">Saiba mais →</a>
 
   <nav class="nav-menu">
     <?php
@@ -386,13 +409,24 @@ $bottomItems = array_slice(
 <main class="main">
   <?php if ($isSuper): ?>
     <?php $imp = $_SESSION['impersonating'] ?? null; ?>
-    <div class="super-bar" style="<?= $imp ? 'background:#1e40af;' : '' ?>">
+    <div class="super-bar" style="<?= $imp ? 'background:#1e40af;' : 'background:#0a0a0f;' ?>;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 1.2rem">
       <?php if ($imp): ?>
-        <span>👁 Impersonando: <strong><?= e($imp['tenant_name']) ?></strong> · Você continua como super-admin</span>
-        <a href="/admin/impersonate.php?exit=1" style="background:#fff;color:#1e40af;padding:3px 12px;border-radius:5px;font-weight:600;text-decoration:none">✕ Sair da conta</a>
+        <span style="display:inline-flex;align-items:center;gap:.45rem">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          Você está como <strong><?= e($imp['tenant_name']) ?></strong> · super-admin mantido
+        </span>
+        <a href="/admin/impersonate.php?exit=1" style="background:#fff;color:#1e40af;padding:4px 12px;border-radius:6px;font-weight:600;text-decoration:none;font-size:.75rem;display:inline-flex;align-items:center;gap:.3rem">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar pro Super Admin
+        </a>
       <?php else: ?>
-        <span>🔧 Você está visualizando como super-admin · Tenant: <strong><?= e($tenant['name']) ?></strong></span>
-        <a href="/admin/">← Voltar pro Super Admin</a>
+        <span style="display:inline-flex;align-items:center;gap:.45rem">
+          🔧 Você está como super-admin no workspace <strong><?= e($tenant['name']) ?></strong>
+        </span>
+        <a href="/admin/" style="background:rgba(255,255,255,.15);color:#fff;padding:4px 12px;border-radius:6px;font-weight:600;text-decoration:none;font-size:.75rem;display:inline-flex;align-items:center;gap:.3rem;border:1px solid rgba(255,255,255,.2)">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar pro Super Admin
+        </a>
       <?php endif; ?>
     </div>
   <?php endif; ?>
@@ -470,8 +504,8 @@ function mobDrawerClose() {
 .mc-body { flex:1; padding:14px; min-height:200px; overflow-y:auto; }
 .mc-body textarea { width:100%; min-height:220px; border:none; outline:none; font-family:inherit; font-size:.92rem; line-height:1.55; resize:none; color:var(--ink); }
 .mc-foot { padding:10px 14px; border-top:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; background:var(--bone); }
-.mc-btn-send { background:var(--hermes); color:#fff; border:none; padding:9px 18px; border-radius:7px; font-size:.86rem; font-weight:600; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
-.mc-btn-send:hover { background:#0ea371; }
+.mc-btn-send { background:var(--newton); color:#fff; border:none; padding:9px 18px; border-radius:7px; font-size:.86rem; font-weight:600; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px; }
+.mc-btn-send:hover { background:#0284c7; }
 .mc-btn-send:disabled { opacity:.5; cursor:not-allowed; }
 .mc-hint { font-size:.72rem; color:var(--mute); }
 .mc-hint a { color:var(--cr); text-decoration:none; }
@@ -503,14 +537,14 @@ function mobDrawerClose() {
   .mob-hamburger:hover { background: var(--bone); }
   .mob-brand-logo {
     width: 30px; height: 30px; border-radius: 8px;
-    background: var(--hermes); display: flex; align-items: center;
+    background: var(--newton); display: flex; align-items: center;
     justify-content: center; color: #fff; flex-shrink: 0;
   }
   .mob-brand-name {
     font-family: 'Geist Mono', monospace; font-weight: 700;
     font-size: .88rem; color: var(--ink); letter-spacing: -0.01em;
   }
-  .mob-brand-name span { color: var(--hermes); }
+  .mob-brand-name .logo-ia { color: var(--newton); }
 
   /* ── Overlay ── */
   .mob-overlay {
@@ -563,10 +597,10 @@ function mobDrawerClose() {
     background: none; border: none; cursor: pointer;
     position: relative;
   }
-  .mob-nav-btn.active { color: var(--hermes); }
+  .mob-nav-btn.active { color: var(--newton); }
   .mob-nav-btn.active::before {
     content: ''; position: absolute; top: 0; left: 20%; right: 20%;
-    height: 2px; background: var(--hermes); border-radius: 0 0 3px 3px;
+    height: 2px; background: var(--newton); border-radius: 0 0 3px 3px;
   }
   .mob-nav-btn svg { width: 22px; height: 22px; stroke-width: 1.7; }
 

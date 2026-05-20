@@ -38,8 +38,18 @@ function synapse_build_system(array $agent, array $conv): string {
     $prompt = trim($agent['prompt']);
     $now    = date('d/m/Y H:i');
 
+    // Knowledge base injection (se houver snippets habilitados)
+    $kb = '';
+    if (function_exists('kb_fetch_for_prompt') && !empty($agent['id'])) {
+        $kbText = kb_fetch_for_prompt((int)$agent['id']);
+        if ($kbText) {
+            $kb = "\n\n---\nBase de conhecimento (use SOMENTE estas informacoes para fatos especificos do negocio):\n\n" . $kbText;
+        }
+    }
+
     return <<<SYS
 {$prompt}
+{$kb}
 
 ---
 Contexto atual:

@@ -8,7 +8,7 @@ $tenant = require_tenant();
 $tid = (int) $tenant['id'];
 
 billing_ensure_schema();
-plans_ensure_hermes_schema();
+newton_plans_init();
 
 // ─── AJAX actions ───────────────────────────────────────────────────────────
 if (isset($_POST['action'])) {
@@ -67,9 +67,8 @@ if (isset($_POST['action'])) {
 
 $current_plan = $tenant['plan_id'] ? db_one('SELECT * FROM plans WHERE id = ?', [$tenant['plan_id']]) : null;
 $active_sub = billing_active_subscription($tid);
-$pack_balance = billing_lead_pack_balance($tid);
-$plans = hermes_plans_list(true); // só públicos
-$packs = hermes_lead_packs();
+// $pack_balance = billing_lead_pack_balance($tid); // removido (HERMES lead packs)
+$plans = newton_plans_list(true); // só públicos
 $customer = db_one('SELECT * FROM asaas_customers WHERE tenant_id = ?', [$tid]);
 $recent_payments = db_all(
     "SELECT * FROM asaas_payments WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 10",
@@ -83,21 +82,24 @@ $pending_payment = db_one(
     [$tid]
 );
 
-$cnpj_used = cnpj_monthly_used($tid);
-$cnpj_limit = cnpj_monthly_limit($tid);
+// Métricas Newton IA — agentes e canais
+$agents_count   = (int) (db_one("SELECT COUNT(*) AS c FROM agents WHERE tenant_id = ?", [$tid])['c'] ?? 0);
+$channels_count = (int) (db_one("SELECT COUNT(*) AS c FROM agent_channels WHERE tenant_id = ?", [$tid])['c'] ?? 0);
+$plan_features  = $current_plan ? newton_plan_features($current_plan) : [];
 
 app_layout('Plano e Cobranças', 'billing', function() use (
-    $tenant, $current_plan, $active_sub, $pack_balance, $plans, $packs, $customer, $recent_payments, $cnpj_used, $cnpj_limit, $pending_payment
+    $tenant, $current_plan, $active_sub, $plans, $customer, $recent_payments, $pending_payment,
+    $agents_count, $channels_count, $plan_features
 ) {
 ?>
 <style>
   .bil-hero { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin-bottom:18px; }
   .bil-hero h1 { font-size:1.3rem; font-weight:700; margin:0 0 6px; }
   .bil-hero p { color:var(--mute); font-size:.9rem; margin:0; }
-  .bil-hero .badge { font-family:'Geist Mono',monospace; font-size:.58rem; background:var(--hermes); color:#fff; padding:3px 8px; border-radius:4px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; margin-left:8px; vertical-align:middle; }
+  .bil-hero .badge { font-family:'Geist Mono',monospace; font-size:.58rem; background:var(--newton); color:#fff; padding:3px 8px; border-radius:4px; letter-spacing:.08em; text-transform:uppercase; font-weight:600; margin-left:8px; vertical-align:middle; }
 
   .bil-current { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:18px; display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center; }
-  .bil-current .ic { width:48px; height:48px; border-radius:10px; background:var(--hermes); color:#fff; display:flex; align-items:center; justify-content:center; }
+  .bil-current .ic { width:48px; height:48px; border-radius:10px; background:var(--newton); color:#fff; display:flex; align-items:center; justify-content:center; }
   .bil-current h2 { font-size:1.1rem; margin:0 0 4px; }
   .bil-current .meta { font-size:.84rem; color:var(--mute); }
   .bil-current .price { font-size:1.4rem; font-weight:700; text-align:right; }
@@ -114,23 +116,23 @@ app_layout('Plano e Cobranças', 'billing', function() use (
   .bil-plans { display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:24px; }
   @media (max-width: 980px) { .bil-plans { grid-template-columns:1fr; } }
   .bil-plan { background:#fff; border:1px solid var(--line); border-radius:14px; padding:20px; position:relative; display:flex; flex-direction:column; }
-  .bil-plan.popular { border-color:var(--hermes); box-shadow:0 4px 14px rgba(16,185,129,.1); }
-  .bil-plan.popular::before { content:'⭐ Mais popular'; position:absolute; top:0; right:0; background:var(--hermes); color:#fff; font-family:'Geist Mono',monospace; font-size:.56rem; padding:3px 10px; border-radius:0 14px 0 8px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
-  .bil-plan.current { border-color:var(--hermes); }
-  .bil-plan.current::after { content:'PLANO ATUAL'; position:absolute; bottom:-1px; left:-1px; right:-1px; background:var(--hermes); color:#fff; font-family:'Geist Mono',monospace; font-size:.58rem; padding:5px; border-radius:0 0 13px 13px; font-weight:600; letter-spacing:.08em; text-align:center; }
+  .bil-plan.popular { border-color:var(--newton); box-shadow:0 4px 14px rgba(14,165,233,.1); }
+  .bil-plan.popular::before { content:'⭐ Mais popular'; position:absolute; top:0; right:0; background:var(--newton); color:#fff; font-family:'Geist Mono',monospace; font-size:.56rem; padding:3px 10px; border-radius:0 14px 0 8px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
+  .bil-plan.current { border-color:var(--newton); }
+  .bil-plan.current::after { content:'PLANO ATUAL'; position:absolute; bottom:-1px; left:-1px; right:-1px; background:var(--newton); color:#fff; font-family:'Geist Mono',monospace; font-size:.58rem; padding:5px; border-radius:0 0 13px 13px; font-weight:600; letter-spacing:.08em; text-align:center; }
   .bil-plan h3 { font-size:1.3rem; font-weight:700; margin:0 0 6px; }
   .bil-plan .tier-code { font-family:'Geist Mono',monospace; font-size:.62rem; color:var(--mute); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
   .bil-plan .pr { font-size:2rem; font-weight:700; line-height:1; }
   .bil-plan .pr small { font-size:.55em; color:var(--mute); font-weight:500; }
-  .bil-plan .annual-hint { font-family:'Geist Mono',monospace; font-size:.7rem; color:var(--hermes); margin-top:6px; font-weight:600; }
+  .bil-plan .annual-hint { font-family:'Geist Mono',monospace; font-size:.7rem; color:var(--newton); margin-top:6px; font-weight:600; }
   .bil-plan .feat-list { list-style:none; padding:0; margin:18px 0; flex:1; }
   .bil-plan .feat-list li { font-size:.85rem; color:var(--ink-2); padding:5px 0; display:flex; align-items:flex-start; gap:8px; }
-  .bil-plan .feat-list li::before { content:'✓'; color:var(--hermes); font-weight:700; flex-shrink:0; margin-top:1px; }
+  .bil-plan .feat-list li::before { content:'✓'; color:var(--newton); font-weight:700; flex-shrink:0; margin-top:1px; }
   .bil-plan .feat-list li.x::before { content:'✕'; color:var(--mute); }
   .bil-plan .feat-list li.x { color:var(--mute); }
-  .bil-plan .sub-cta { background:var(--hermes); color:#fff; border:none; padding:12px 18px; border-radius:8px; font-size:.92rem; font-weight:600; cursor:pointer; font-family:inherit; width:100%; transition:all .15s; }
-  .bil-plan .sub-cta:hover { background:#0ea371; }
-  .bil-plan .sub-cta.ghost { background:#fff; color:var(--hermes); border:1px solid var(--hermes); }
+  .bil-plan .sub-cta { background:var(--newton); color:#fff; border:none; padding:12px 18px; border-radius:8px; font-size:.92rem; font-weight:600; cursor:pointer; font-family:inherit; width:100%; transition:all .15s; }
+  .bil-plan .sub-cta:hover { background:#0284c7; }
+  .bil-plan .sub-cta.ghost { background:#fff; color:var(--newton); border:1px solid var(--newton); }
   .bil-plan .sub-cta.ghost:hover { background:var(--bone); }
   .bil-plan .sub-cta:disabled { background:var(--bone); color:var(--mute); cursor:not-allowed; }
 
@@ -140,10 +142,10 @@ app_layout('Plano e Cobranças', 'billing', function() use (
   .bil-pack { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; text-align:center; }
   .bil-pack .pl-num { font-size:1.3rem; font-weight:700; color:var(--ink); }
   .bil-pack .pl-label { font-family:'Geist Mono',monospace; font-size:.62rem; color:var(--mute); text-transform:uppercase; margin-bottom:4px; }
-  .bil-pack .pl-price { font-size:1rem; font-weight:600; color:var(--hermes); margin:8px 0 4px; }
+  .bil-pack .pl-price { font-size:1rem; font-weight:600; color:var(--newton); margin:8px 0 4px; }
   .bil-pack .pl-per { font-family:'Geist Mono',monospace; font-size:.66rem; color:var(--mute); margin-bottom:10px; }
-  .bil-pack button { background:var(--hermes); color:#fff; border:none; padding:8px; border-radius:7px; width:100%; font-size:.8rem; cursor:pointer; font-family:inherit; font-weight:500; }
-  .bil-pack button:hover { background:#0ea371; }
+  .bil-pack button { background:var(--newton); color:#fff; border:none; padding:8px; border-radius:7px; width:100%; font-size:.8rem; cursor:pointer; font-family:inherit; font-weight:500; }
+  .bil-pack button:hover { background:#0284c7; }
 
   /* Payment history */
   .bil-history { background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px; }
@@ -164,7 +166,7 @@ app_layout('Plano e Cobranças', 'billing', function() use (
   .bm-box .summary { background:var(--bone); padding:12px 14px; border-radius:8px; margin-bottom:14px; font-size:.86rem; }
   .bm-actions { display:flex; gap:8px; justify-content:flex-end; padding-top:12px; border-top:1px solid var(--line); }
   .bm-btn { padding:9px 16px; border:none; border-radius:7px; font-size:.86rem; font-weight:600; cursor:pointer; font-family:inherit; }
-  .bm-btn.primary { background:var(--hermes); color:#fff; }
+  .bm-btn.primary { background:var(--newton); color:#fff; }
   .bm-btn.ghost { background:#fff; color:var(--ink-2); border:1px solid var(--line); }
 
   .toast { position:fixed; bottom:20px; right:20px; background:#0f172a; color:#fff; padding:11px 18px; border-radius:8px; font-size:.86rem; z-index:400; opacity:0; transition:opacity .2s; pointer-events:none; }
@@ -183,7 +185,7 @@ app_layout('Plano e Cobranças', 'billing', function() use (
   <div style="flex:1;min-width:200px">
     <div style="font-weight:700;color:#78350f;font-size:1.02rem;margin-bottom:2px">Cobrança pendente: <?= brl_cents_fmt((int)$pending_payment['value_cents']) ?></div>
     <div style="font-size:.84rem;color:#92400e">
-      <?= htmlspecialchars($pending_payment['kind'] === 'lead_pack' ? 'Lead pack' : 'Assinatura HERMES.b2b') ?>
+      Assinatura Newton IA
       <?php if ($pending_payment['due_date']): ?> · vence em <?= date('d/m/Y', strtotime($pending_payment['due_date'])) ?><?php endif; ?>
       · Pague com PIX ou Cartão pra ativar seu acesso.
     </div>
@@ -199,7 +201,7 @@ app_layout('Plano e Cobranças', 'billing', function() use (
   $has_doc = !empty($customer['cpf_cnpj']);
 ?>
 <!-- Plano selecionado mas sem subscription — completar cadastro fiscal pra emitir -->
-<div style="background:#fff;border:2px solid var(--hermes);border-radius:14px;padding:22px 26px;margin-bottom:18px;box-shadow:0 4px 14px rgba(16,185,129,.08)">
+<div style="background:#fff;border:2px solid var(--newton);border-radius:14px;padding:22px 26px;margin-bottom:18px;box-shadow:0 4px 14px rgba(14,165,233,.08)">
   <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px">
     <div style="width:38px;height:38px;border-radius:50%;background:#dcfce7;color:#166534;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">📋</div>
     <div style="flex:1">
@@ -235,7 +237,7 @@ app_layout('Plano e Cobranças', 'billing', function() use (
 
   <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
     <div style="font-size:.78rem;color:var(--mute)">🔒 Seus dados são protegidos. Asaas é certificado PCI e LGPD.</div>
-    <button onclick="retrySubscription()" id="retry-btn" style="background:var(--hermes);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:.92rem;font-weight:600;cursor:pointer;font-family:inherit">
+    <button onclick="retrySubscription()" id="retry-btn" style="background:var(--newton);color:#fff;border:none;padding:11px 22px;border-radius:8px;font-size:.92rem;font-weight:600;cursor:pointer;font-family:inherit">
       Gerar cobrança →
     </button>
   </div>
@@ -296,17 +298,17 @@ app_layout('Plano e Cobranças', 'billing', function() use (
 </div>
 <?php endif; ?>
 
-<!-- KPIs -->
+<!-- KPIs Newton IA -->
 <div class="bil-status">
   <div class="item">
-    <div class="lbl">Extrações no mês</div>
-    <div class="val"><?= number_format($cnpj_used, 0, ',', '.') ?> / <?= number_format($cnpj_limit, 0, ',', '.') ?></div>
-    <div class="sub">cota do plano + créditos extras</div>
+    <div class="lbl">Agentes ativos</div>
+    <div class="val"><?= $agents_count ?> / <?= $plan_features['agents'] < 0 ? '∞' : ($plan_features['agents'] ?? '—') ?></div>
+    <div class="sub">agentes de IA criados</div>
   </div>
   <div class="item">
-    <div class="lbl">Lead pack — saldo</div>
-    <div class="val"><?= number_format($pack_balance, 0, ',', '.') ?></div>
-    <div class="sub">extrações extras disponíveis</div>
+    <div class="lbl">Canais conectados</div>
+    <div class="val"><?= $channels_count ?> / <?= $plan_features['channels'] ?? '—' ?></div>
+    <div class="sub">WhatsApp · outros em breve</div>
   </div>
   <div class="item">
     <div class="lbl">Customer Asaas</div>
@@ -330,10 +332,13 @@ app_layout('Plano e Cobranças', 'billing', function() use (
       <div class="annual-hint">Anual: <?= brl_cents_fmt((int)$p['annual_price_cents']) ?> · 2 meses grátis</div>
     <?php endif; ?>
     <ul class="feat-list">
-      <li><strong><?= number_format((int)$p['limit_cnpj_monthly'], 0, ',', '.') ?></strong> extrações Radar/mês</li>
-      <li><strong><?= number_format((int)$p['limit_contacts'], 0, ',', '.') ?></strong> cards no Pipeline</li>
+      <?php $pf = newton_plan_features($p); $ag = $pf['agents'] ?? 1; ?>
+      <li><strong><?= $ag < 0 ? 'Ilimitados' : $ag ?></strong> agente<?= $ag !== 1 ? 's' : '' ?> de IA</li>
+      <li><strong><?= $pf['channels'] ?? 1 ?></strong> canal<?= ($pf['channels'] ?? 1) > 1 ? 'is' : '' ?> WhatsApp</li>
+      <li><strong><?= number_format($pf['messages_monthly'] ?? 500, 0, ',', '.') ?></strong> mensagens / mês</li>
       <li><strong><?= (int)$p['users_limit'] ?></strong> usuário<?= (int)$p['users_limit'] > 1 ? 's' : '' ?></li>
-      <li><strong><?= (int)$p['mail_self_limit'] ?></strong> conta Mail Lab self-service</li>
+      <?php if (!empty($pf['inbox'])): ?><li>Inbox unificado</li><?php endif; ?>
+      <?php if (!empty($pf['api_access'])): ?><li>Acesso à API</li><?php else: ?><li class="x">API pública</li><?php endif; ?>
       <li><?= htmlspecialchars(support_label($p['support_level'])) ?></li>
     </ul>
     <?php if ($is_current): ?>
@@ -347,18 +352,11 @@ app_layout('Plano e Cobranças', 'billing', function() use (
 <?php endforeach; ?>
 </div>
 
-<!-- Lead Packs -->
-<div class="bil-sec-title">📦 Lead Packs · top-up de extrações Radar</div>
-<div class="bil-packs">
-<?php foreach ($packs as $pk): ?>
-  <div class="bil-pack">
-    <div class="pl-label">Pack <?= number_format($pk['leads'], 0, ',', '.') ?></div>
-    <div class="pl-num"><?= number_format($pk['leads'], 0, ',', '.') ?> leads</div>
-    <div class="pl-price"><?= brl_cents_fmt($pk['price_cents']) ?></div>
-    <div class="pl-per">R$ <?= number_format($pk['per_lead'], 2, ',', '.') ?> / lead</div>
-    <button onclick='openPackModal(<?= htmlspecialchars(json_encode($pk), ENT_QUOTES) ?>)'>Comprar com PIX</button>
-  </div>
-<?php endforeach; ?>
+<!-- Add-ons futuros -->
+<div class="bil-sec-title" style="color:var(--mute)">📦 Add-ons · mensagens extras</div>
+<div style="background:var(--bone);border:1px dashed var(--line);border-radius:12px;padding:20px 24px;text-align:center;color:var(--mute);font-size:.88rem">
+  <div style="font-size:1.4rem;margin-bottom:8px">🚧</div>
+  Add-ons de mensagens extras chegam em breve. Fale com <a href="mailto:contato@newtonia.digital" style="color:var(--newton)">contato@newtonia.digital</a> para upgrade manual.
 </div>
 
 <!-- Histórico -->
@@ -380,7 +378,7 @@ app_layout('Plano e Cobranças', 'billing', function() use (
           <td><span style="font-family:'Geist Mono',monospace;font-size:.7rem"><?= htmlspecialchars($pay['status']) ?></span></td>
           <td>
             <?php if ($pay['invoice_url']): ?>
-              <a href="<?= htmlspecialchars($pay['invoice_url']) ?>" target="_blank" style="color:var(--hermes);text-decoration:none;font-weight:500">Ver fatura →</a>
+              <a href="<?= htmlspecialchars($pay['invoice_url']) ?>" target="_blank" style="color:var(--newton);text-decoration:none;font-weight:500">Ver fatura →</a>
             <?php endif; ?>
           </td>
         </tr>
@@ -516,7 +514,7 @@ function updateSubSummary() {
   const period = cycle === 'YEARLY' ? '/ ano' : '/ mês';
   document.getElementById('sub-summary').innerHTML =
     '<strong>' + _curPlan.name + '</strong> · ' + (cycle === 'YEARLY' ? 'Anual' : 'Mensal') +
-    '<br><span style="font-size:1.2rem;font-weight:700;color:var(--hermes)">' + brl(value) + '</span> <span style="color:var(--mute)">' + period + '</span>';
+    '<br><span style="font-size:1.2rem;font-weight:700;color:var(--newton)">' + brl(value) + '</span> <span style="color:var(--mute)">' + period + '</span>';
 }
 
 async function doSubscribe() {
@@ -542,7 +540,7 @@ function openPackModal(pack) {
   document.getElementById('pack-code').value = pack.code;
   document.getElementById('pack-summary').innerHTML =
     '<strong>' + pack.leads.toLocaleString('pt-BR') + ' extrações Radar</strong><br>' +
-    '<span style="font-size:1.2rem;font-weight:700;color:var(--hermes)">' + brl(pack.price_cents) + '</span>' +
+    '<span style="font-size:1.2rem;font-weight:700;color:var(--newton)">' + brl(pack.price_cents) + '</span>' +
     '<br><small style="color:var(--mute)">R$ ' + pack.per_lead.toFixed(2).replace('.',',') + ' / lead · validade 12 meses</small>';
   document.getElementById('pack-modal').classList.add('open');
 }
@@ -640,7 +638,7 @@ async function doBuyPack() {
   <div style="width:1px;height:14px;background:var(--line)"></div>
   <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--mute)">
     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-    Conforme <strong style="color:var(--ink)">LGPD</strong> · <a href="/privacy.php" style="color:var(--hermes);text-decoration:none">Política de Privacidade</a>
+    Conforme <strong style="color:var(--ink)">LGPD</strong> · <a href="/privacy.php" style="color:var(--newton);text-decoration:none">Política de Privacidade</a>
   </div>
 </div>
 <?php

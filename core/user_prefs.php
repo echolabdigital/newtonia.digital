@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Preferências por usuário
+ * Newton IA — Preferências por usuário
  * Tabela key-value simples. Cada pref é salva individualmente.
  */
 
@@ -58,9 +58,14 @@ function user_prefs_set_many(int $userId, array $data): void
 }
 
 /**
- * Definição de todas as prefs do HERMES.b2b com defaults.
+ * Definição de todas as prefs Newton IA com defaults.
  * Usado tanto na página de config quanto pra ler prefs em outros módulos.
  */
+function newton_pref_defaults(): array
+{
+    return hermes_pref_defaults();
+}
+
 function hermes_pref_defaults(): array
 {
     return [

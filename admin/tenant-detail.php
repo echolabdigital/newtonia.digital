@@ -168,7 +168,7 @@ $audit = db_all(
 
 admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans, $features_all, $features_state, $overrides_map, $metrics, $users, $audit, $pending_pay) {
     $tier = $t['tier_code'] ?: 'none';
-    $brand_color = $t['brand_color'] ?: '#10b981';
+    $brand_color = $t['brand_color'] ?: '#0ea5e9';
     $initial = strtoupper(mb_substr($t['brand_name'] ?: $t['name'], 0, 1));
     $leads_limit = (int)$t['plan_radar_limit'] + (int)$t['cnpj_addon_credits'];
     $leads_used  = $metrics['leads_used_month'];
@@ -176,7 +176,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
 ?>
 <style>
   .td-back { display:inline-flex; align-items:center; gap:5px; color:#6b7280; text-decoration:none; font-size:.82rem; margin-bottom:12px; }
-  .td-back:hover { color:#10b981; }
+  .td-back:hover { color:#0ea5e9; }
 
   .td-hero { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:20px 22px; margin-bottom:14px; display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
   .td-avatar { width:56px; height:56px; border-radius:10px; flex-shrink:0; color:#fff; font-weight:700; font-family:'Geist Mono',monospace; font-size:1.4rem; display:flex; align-items:center; justify-content:center; }
@@ -186,7 +186,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   .td-tag { font-family:'Geist Mono',monospace; font-size:.6rem; padding:3px 8px; border-radius:4px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }
   .td-tag.tier.trial    { background:#f3f4f6; color:#6b7280; }
   .td-tag.tier.starter  { background:#dcfce7; color:#166534; }
-  .td-tag.tier.pro      { background:#10b98115; color:#059669; }
+  .td-tag.tier.pro      { background:#0ea5e915; color:#0284c7; }
   .td-tag.tier.business { background:#0ea5e915; color:#0369a1; }
   .td-tag.tier.none     { background:#f3f4f6; color:#9ca3af; }
   .td-tag.status.active    { background:#dcfce7; color:#166534; }
@@ -200,7 +200,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   .td-kpi .v { font-size:1.6rem; font-weight:700; color:#111827; line-height:1; margin-top:5px; letter-spacing:-0.02em; }
   .td-kpi .v small { font-size:.6em; color:#9ca3af; font-weight:500; }
   .td-kpi .bar { background:#e5e7eb; height:5px; border-radius:99px; margin-top:8px; overflow:hidden; }
-  .td-kpi .bar > i { display:block; height:100%; background:#10b981; transition:width .3s; }
+  .td-kpi .bar > i { display:block; height:100%; background:#0ea5e9; transition:width .3s; }
   .td-kpi .bar > i.warn { background:#f59e0b; }
   .td-kpi .bar > i.danger { background:#ef4444; }
   .td-kpi .sub { font-size:.7rem; color:#6b7280; margin-top:4px; }
@@ -214,7 +214,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   .td-action-row { display:flex; gap:8px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
   .td-action-row label { font-family:'Geist Mono',monospace; font-size:.62rem; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; min-width:80px; }
   .td-action-row select, .td-action-row input { flex:1; min-width:120px; padding:7px 10px; border:1px solid #e5e7eb; border-radius:6px; font-size:.82rem; font-family:inherit; }
-  .td-action-row button { padding:7px 14px; background:#10b981; color:#fff; border:none; border-radius:6px; font-size:.78rem; cursor:pointer; font-family:inherit; font-weight:500; }
+  .td-action-row button { padding:7px 14px; background:#0ea5e9; color:#fff; border:none; border-radius:6px; font-size:.78rem; cursor:pointer; font-family:inherit; font-weight:500; }
   .td-action-row button:hover { background:#0ea371; }
   .td-action-row button.warn { background:#fef3c7; color:#92400e; border:1px solid #fcd34d; }
   .td-action-row button.danger { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
@@ -227,10 +227,10 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   .td-feat-status .override { color:#92400e; font-weight:600; }
   .td-toggle { width:38px; height:22px; background:#e5e7eb; border-radius:99px; position:relative; cursor:pointer; transition:background .2s; flex-shrink:0; }
   .td-toggle::after { content:''; position:absolute; left:2px; top:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:left .2s; box-shadow:0 1px 3px rgba(0,0,0,.15); }
-  .td-toggle.on { background:#10b981; }
+  .td-toggle.on { background:#0ea5e9; }
   .td-toggle.on::after { left:18px; }
   .td-feat-clear { background:transparent; border:none; color:#9ca3af; cursor:pointer; font-size:.7rem; margin-left:10px; padding:2px 6px; }
-  .td-feat-clear:hover { color:#10b981; }
+  .td-feat-clear:hover { color:#0ea5e9; }
 
   .td-users-tbl { width:100%; border-collapse:collapse; font-size:.82rem; }
   .td-users-tbl th { background:#f9fafb; padding:8px; text-align:left; font-family:'Geist Mono',monospace; font-size:.62rem; color:#6b7280; text-transform:uppercase; }
@@ -241,7 +241,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   .td-audit-item { padding:8px 0; border-bottom:1px solid #f3f4f6; display:flex; gap:10px; }
   .td-audit-item:last-child { border-bottom:none; }
   .td-audit-time { font-family:'Geist Mono',monospace; font-size:.66rem; color:#9ca3af; flex-shrink:0; min-width:90px; }
-  .td-audit-action { font-family:'Geist Mono',monospace; color:#10b981; font-weight:600; }
+  .td-audit-action { font-family:'Geist Mono',monospace; color:#0ea5e9; font-weight:600; }
 
   .toast { position:fixed; bottom:20px; right:20px; background:#0f172a; color:#fff; padding:10px 16px; border-radius:8px; font-size:.84rem; z-index:400; opacity:0; transition:opacity .2s; pointer-events:none; }
   .toast.show { opacity:1; }
@@ -302,7 +302,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
   <?php if ($pending_pay['invoice_url']): ?>
     <a href="<?= htmlspecialchars($pending_pay['invoice_url']) ?>" target="_blank" class="td-action-row" style="background:#fff;border:1px solid #fbbf24;color:#78350f;padding:7px 12px;border-radius:6px;text-decoration:none;font-size:.78rem;font-weight:600">Ver fatura</a>
   <?php endif; ?>
-  <button onclick="simulatePayment()" style="background:#10b981;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">
+  <button onclick="simulatePayment()" style="background:#0ea5e9;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">
     🧪 Simular pagamento (sandbox)
   </button>
 </div>

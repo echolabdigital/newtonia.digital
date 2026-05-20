@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Tenant Feature Flags
+ * Newton IA — Tenant Feature Flags
  * Controla quais módulos cada tenant pode ver/usar.
  * Super-admin (Echo_Lab) tem todas as flags ativas no tenant dele;
  * Outros tenants têm flags conforme plano + overrides manuais.
@@ -25,7 +25,7 @@ function tenant_features_ensure_schema(): void
     } catch (\Throwable $e) {}
 }
 
-// Lista de todas as features rastreáveis do HERMES.b2b
+// Lista de todas as features rastreáveis do Newton IA
 function hermes_all_features(): array
 {
     return [

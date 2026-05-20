@@ -1,7 +1,7 @@
 <?php
 /**
- * HERMES.b2b — Webhook receiver Asaas
- * URL pública: https://hermesb2b.co/webhooks/asaas.php
+ * Newton IA — Webhook receiver Asaas
+ * URL pública: https://newtonia.digital/webhooks/asaas.php
  *
  * Fluxo:
  *  1. Asaas POST com JSON do evento
@@ -158,24 +158,27 @@ try {
         case 'PAYMENT_RECEIVED':
             if ($tenant_id) {
                 if ($subscription_id) {
+                    $prev_status = db_val('SELECT status FROM tenants WHERE id = ?', [$tenant_id]);
                     db_q("UPDATE tenants SET status = 'active' WHERE id = ?", [$tenant_id]);
                     db_q("UPDATE asaas_subscriptions SET status = 'ACTIVE' WHERE asaas_subscription_id = ? AND tenant_id = ?",
                         [$subscription_id, $tenant_id]);
 
-                    // E-mail de pagamento confirmado
                     if ($owner_email) {
                         $plan_row  = db_one('SELECT p.name FROM plans p JOIN tenants t ON t.plan_id = p.id WHERE t.id = ?', [$tenant_id]);
                         $plan_name = $plan_row['name'] ?? 'seu plano';
                         $value_fmt = 'R$ ' . number_format(($payment['value'] ?? 0), 2, ',', '.');
-                        $period    = strtolower($payment['billingType'] === 'YEARLY' ? 'anual' : 'mensal');
+                        $period    = ($payment['billingType'] ?? '') === 'YEARLY' ? 'anual' : 'mensal';
                         $inv_url   = $payment['invoiceUrl'] ?? '';
                         try {
-                            [$subj, $body] = email_pagamento_confirmado($owner_name, $tenant_name, $plan_name, $value_fmt, $period, $inv_url);
+                            if ($prev_status === 'suspended') {
+                                // Reativação após suspensão — e-mail específico
+                                [$subj, $body] = email_conta_reativada($owner_name, $plan_name);
+                            } else {
+                                [$subj, $body] = email_pagamento_confirmado($owner_name, $tenant_name, $plan_name, $value_fmt, $period, $inv_url);
+                            }
                             hermes_mail($owner_email, $subj, $body);
                         } catch (\Throwable $e) { error_log('[webhook] email pagamento: ' . $e->getMessage()); }
                     }
-                } else {
-                    billing_activate_lead_pack($payment_id);
                 }
             }
             break;

@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Signup self-service
+ * Newton IA — Signup self-service
  * Fluxo público de cadastro: cria user + tenant + tenant_users e:
  *   - se TRIAL: auto-login e redireciona pra /app/
  *   - se plano pago: cria Asaas customer + subscription e redireciona pro checkout
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'name'        => $company,
                 'slug'        => $slug,
                 'brand_name'  => $company,
-                'brand_color' => '#10b981',
+                'brand_color' => '#0ea5e9',
                 'plan_id'     => (int) $plan['id'],
                 'status'      => $tenant_status,
             ]);
@@ -128,7 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['is_super_admin'] = false;
             $_SESSION['user_tenants']   = [[
                 'id' => (int)$tenantId, 'slug' => $slug, 'name' => $company,
-                'brand_name' => $company, 'brand_color' => '#10b981', 'role' => 'owner',
+                'brand_name' => $company, 'brand_color' => '#0ea5e9', 'role' => 'owner',
             ]];
             $_SESSION['tenant_id'] = (int) $tenantId;
 
@@ -174,14 +174,14 @@ $displayed_plans = array_filter($plans, fn($p) => in_array($p['tier_code'], ['st
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Comece grátis — HERMES.b2b</title>
+<title>Comece grátis — Newton IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --hermes:#10b981; --indigo:#3d3dff; --coral:#be123c;
+    --newton:#0ea5e9; --indigo:#3d3dff; --coral:#be123c;
     --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --paper:#fafaf7; --bone:#f6f4ef;
   }
   body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); min-height: 100vh; padding: 20px; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
@@ -315,7 +315,7 @@ $displayed_plans = array_filter($plans, fn($p) => in_array($p['tier_code'], ['st
 
         <label class="terms">
           <input type="checkbox" name="accept_terms" required>
-          <span>Concordo com os <a href="#" target="_blank">Termos de Uso</a> e <a href="#" target="_blank">Política de Privacidade</a> da HERMES.b2b.</span>
+          <span>Concordo com os <a href="#" target="_blank">Termos de Uso</a> e <a href="#" target="_blank">Política de Privacidade</a> da Newton IA.</span>
         </label>
 
         <button type="submit" class="submit" id="submit-btn">

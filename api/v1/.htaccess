@@ -1,0 +1,12 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /api/v1/
+
+    # Bloqueia bootstrap interno
+    RewriteRule ^_bootstrap\.php$ - [F,L]
+
+    # /api/v1/foo  -> /api/v1/foo.php
+    # /api/v1/foo/bar -> /api/v1/foo/bar.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^([a-z0-9_-]+(?:/[a-z0-9_-]+)?)/?$ $1.php [L,QSA]
