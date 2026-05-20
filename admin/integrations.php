@@ -20,6 +20,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($partner && $partner !== '••••••••') setting_set('zapi.partner_token', $partner, auth_user_id(), true);
         if ($client  && $client  !== '••••••••') setting_set('zapi.default_client_token', $client, auth_user_id(), true);
         flash('success', 'Z-API atualizado.');
+    } elseif ($provider === 'google') {
+        $places = trim($_POST['google_places'] ?? '');
+        if ($places && $places !== '••••••••') setting_set('google.places_api_key', $places, auth_user_id(), true);
+        flash('success', 'Google Places atualizado.');
     } elseif (isset($catalog[$provider])) {
         $key     = trim($_POST['api_key'] ?? '');
         $enabled = isset($_POST['enabled']) ? '1' : '0';
@@ -224,6 +228,37 @@ admin_layout('Integrações · IA', 'integrations', function() use ($catalog) {
         <div id="test-result-zapi" style="font-size:.78rem;display:none"></div>
         <button type="submit" class="btn-save">Salvar</button>
       </div>
+    </form>
+  </div>
+
+  <!-- Google Places API (FLUX scraper) -->
+  <?php $googlePlaces = setting_get('google.places_api_key') ?: ''; ?>
+  <div class="pcard" style="margin-bottom:1.5rem">
+    <div class="pcard-head">
+      <div class="provider-icon" style="background:#4285f418;color:#4285f4">G</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+          <span style="font-size:1rem;font-weight:700;color:#18181b">Google Places · Scraper de leads</span>
+          <div style="display:flex;align-items:center;gap:.35rem">
+            <div class="dot-status" style="background:<?= $googlePlaces ? '#22c55e' : '#d1d5db' ?>"></div>
+            <span style="font-size:.72rem;font-weight:600;color:<?= $googlePlaces ? '#16a34a' : '#94a3b8' ?>"><?= $googlePlaces ? 'Configurado' : 'Sem chave' ?></span>
+          </div>
+        </div>
+        <div style="font-size:.8rem;color:#8b8a93">Permite o FLUX extrair leads do Google Maps por nicho/cidade. Custo ~$0.03/lead (Google cobra).</div>
+      </div>
+    </div>
+    <form method="POST">
+      <?= csrf_field() ?>
+      <input type="hidden" name="provider" value="google">
+      <div class="pcard-body">
+        <label class="field-label">Places API Key</label>
+        <input class="field-input" type="password" name="google_places"
+               value="<?= $googlePlaces ? '••••••••' : '' ?>"
+               placeholder="<?= $googlePlaces ? '(mantém a chave atual)' : 'AIzaSy...' ?>"
+               autocomplete="new-password">
+        <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem">Habilite a <b>Places API</b> em <a href="https://console.cloud.google.com" target="_blank" style="color:#0ea5e9">console.cloud.google.com</a> e cole a chave aqui.</div>
+      </div>
+      <div class="pcard-foot"><button type="submit" class="btn-save">Salvar</button></div>
     </form>
   </div>
 
