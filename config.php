@@ -42,3 +42,5 @@ require_once $_core . 'llm.php';
 require_once $_core . 'zapi.php';
 require_once $_core . 'agent.php';
 require_once $_core . 'synapse.php';
+require_once $_core . 'api_auth.php';
+require_once $_core . 'webhooks.php';

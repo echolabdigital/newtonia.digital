@@ -132,13 +132,18 @@ $conv = synapse_get_or_create_conversation($agentId, $tenantId, $channelId, $pho
 
 // Handoff humano — salva mensagem mas não responde
 if (in_array($conv['status'] ?? '', ['paused', 'human'])) {
-    synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+    $mid = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+    webhook_event_message_received($tenantId, $conv, $mid, $inbound);
+    webhook_fire($tenantId, 'handoff.requested', [
+        'conversation_id' => (int)$conv['id'], 'agent_id' => $agentId, 'reason' => 'status_' . $conv['status'],
+    ]);
     echo json_encode(['ok' => true, 'skip' => 'human_handoff']);
     exit;
 }
 
 // Salva mensagem recebida
-synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+$inboundId = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+webhook_event_message_received($tenantId, $conv, $inboundId, $inbound);
 
 // ── Anti-ban: delay de digitação proporcional ─────────────────────────────────
 $typingDelay = min(4, max(1, (int)(strlen($inbound) / 50)));
@@ -167,7 +172,8 @@ if (!$response) {
 $response = trim($response);
 
 // ── Salva e envia ─────────────────────────────────────────────────────────────
-synapse_save_message((int)$conv['id'], 'out', $response, 'text');
+$outId = synapse_save_message((int)$conv['id'], 'out', $response, 'text');
+webhook_event_message_sent($tenantId, $conv, $outId, $response, $provider, (string)($agent['model'] ?? ''));
 
 $cfg  = json_decode($channel['config_json'] ?? '{}', true);
 $sent = zapi_send_text(
