@@ -451,11 +451,14 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
     <?php endif ?>
   <?php endif ?>
 
-  <div style="display:flex;gap:.75rem;margin-bottom:1.5rem">
-    <a href="agent-test.php?id=<?= (int)$agent['id'] ?>" style="flex:1;padding:.75rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;text-align:center;color:#0284c7;text-decoration:none;font-size:.875rem;font-weight:600">
+  <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;flex-wrap:wrap">
+    <a href="agent-train.php?id=<?= (int)$agent['id'] ?>" style="flex:1;min-width:180px;padding:.75rem;background:linear-gradient(135deg,#ecfeff,#dbeafe);border:1px solid #bae6fd;border-radius:10px;text-align:center;color:#0284c7;text-decoration:none;font-size:.875rem;font-weight:600">
+      🧠 Treino · KB e gatilhos
+    </a>
+    <a href="agent-test.php?id=<?= (int)$agent['id'] ?>" style="flex:1;min-width:140px;padding:.75rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;text-align:center;color:#0284c7;text-decoration:none;font-size:.875rem;font-weight:600">
       Testar no browser
     </a>
-    <a href="conversations.php?agent_id=<?= (int)$agent['id'] ?>" style="flex:1;padding:.75rem;background:#f8fafc;border:1px solid #e7e5e0;border-radius:10px;text-align:center;color:#3a3a40;text-decoration:none;font-size:.875rem;font-weight:600">
+    <a href="conversations.php?agent_id=<?= (int)$agent['id'] ?>" style="flex:1;min-width:140px;padding:.75rem;background:#f8fafc;border:1px solid #e7e5e0;border-radius:10px;text-align:center;color:#3a3a40;text-decoration:none;font-size:.875rem;font-weight:600">
       Ver conversas
     </a>
   </div>

@@ -17,7 +17,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'clos
     $conv['status'] = 'closed';
 }
 
-app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['contact_phone']), 'conversations', function() use ($conv, $messages) {
+// Transferir pra humano (gera resumo IA + dispara webhook handoff.requested)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'handoff') {
+    csrf_check();
+    synapse_trigger_handoff($tid, $conv, 'manual');
+    header('Location: /app/conversation-view.php?id=' . $id);
+    exit;
+}
+
+// Regenerar resumo
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') === 'summarize') {
+    csrf_check();
+    conv_summarize($id);
+    header('Location: /app/conversation-view.php?id=' . $id);
+    exit;
+}
+
+$summary = conv_summary_get($id);
+$tags    = conv_tags_get($id);
+
+app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['contact_phone']), 'conversations', function() use ($conv, $messages, $summary, $tags) {
 ?>
 <div style="max-width:760px;margin:0 auto;padding:2rem 1.5rem">
 
@@ -50,11 +69,17 @@ app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['conta
         'open'   => ['bg'=>'#f0fdf4','color'=>'#16a34a','label'=>'Aberta'],
         'closed' => ['bg'=>'#f8fafc','color'=>'#64748b','label'=>'Fechada'],
         'paused' => ['bg'=>'#fefce8','color'=>'#ca8a04','label'=>'Pausada'],
+        'human'  => ['bg'=>'#faf5ff','color'=>'#7c3aed','label'=>'Com humano'],
         default  => ['bg'=>'#f8fafc','color'=>'#94a3b8','label'=>$conv['status']],
       };
       ?>
       <span style="font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:99px;background:<?= $statusCfg['bg'] ?>;color:<?= $statusCfg['color'] ?>"><?= $statusCfg['label'] ?></span>
-      <?php if ($conv['status'] !== 'closed'): ?>
+      <?php if ($conv['status'] !== 'closed' && $conv['status'] !== 'human'): ?>
+      <form method="POST" style="display:inline" onsubmit="return confirm('Transferir pra humano? Newton vai gerar um resumo da conversa e enviar via webhook.')">
+        <?= csrf_field() ?>
+        <input type="hidden" name="_action" value="handoff">
+        <button type="submit" style="padding:.45rem .9rem;font-size:.78rem;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">→ Pra humano</button>
+      </form>
       <a href="inbox.php?id=<?= (int)$conv['id'] ?>" style="padding:.45rem .9rem;font-size:.78rem;background:#0ea5e9;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:.35rem">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
         Assumir conversa
@@ -69,6 +94,44 @@ app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['conta
       <?php endif ?>
     </div>
   </div>
+
+  <!-- Resumo IA + Tags -->
+  <?php
+    $sentCfg = [
+      'positive' => ['bg'=>'#dcfce7','color'=>'#15803d','label'=>'😊 Positivo'],
+      'neutral'  => ['bg'=>'#e0f2fe','color'=>'#0369a1','label'=>'😐 Neutro'],
+      'negative' => ['bg'=>'#fee2e2','color'=>'#b91c1c','label'=>'😞 Negativo'],
+      'urgent'   => ['bg'=>'#fef3c7','color'=>'#92400e','label'=>'⚠ Urgente'],
+    ];
+  ?>
+  <?php if ($summary || $tags): ?>
+  <div style="background:linear-gradient(135deg,#f0f9ff,#eff6ff);border:1px solid #bae6fd;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.5rem;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:.72rem;font-weight:700;color:#0369a1;letter-spacing:.05em">🧠 RESUMO IA</span>
+        <?php if ($summary):
+          $sc = $sentCfg[$summary['sentiment']] ?? $sentCfg['neutral']; ?>
+          <span style="font-size:.7rem;padding:.15rem .55rem;border-radius:99px;background:<?= $sc['bg'] ?>;color:<?= $sc['color'] ?>;font-weight:600"><?= $sc['label'] ?></span>
+        <?php endif ?>
+        <?php foreach ($tags as $tag): ?>
+          <span style="font-size:.66rem;padding:.15rem .5rem;border-radius:99px;background:#fef3c7;color:#92400e;font-weight:600;font-family:'Geist Mono',monospace">#<?= htmlspecialchars($tag) ?></span>
+        <?php endforeach ?>
+      </div>
+      <form method="POST" style="display:inline"><?= csrf_field() ?><input type="hidden" name="_action" value="summarize"><button type="submit" style="font-size:.7rem;background:transparent;border:1px solid #bae6fd;color:#0369a1;padding:.25rem .65rem;border-radius:6px;cursor:pointer">↻ Atualizar resumo</button></form>
+    </div>
+    <?php if ($summary): ?>
+      <div style="font-size:.88rem;line-height:1.55;color:#18181b;margin-bottom:.55rem"><?= htmlspecialchars($summary['summary']) ?></div>
+      <?php if (!empty($summary['intent'])): ?>
+        <div style="font-size:.78rem;color:#475569"><b>Intencao:</b> <?= htmlspecialchars($summary['intent']) ?></div>
+      <?php endif ?>
+      <?php if (!empty($summary['next_step'])): ?>
+        <div style="font-size:.78rem;color:#475569;margin-top:.2rem"><b>Proximo passo:</b> <?= htmlspecialchars($summary['next_step']) ?></div>
+      <?php endif ?>
+    <?php else: ?>
+      <div style="font-size:.82rem;color:#64748b">Resumo nao gerado. Use o botao "Atualizar resumo" para criar.</div>
+    <?php endif ?>
+  </div>
+  <?php endif ?>
 
   <!-- Mensagens -->
   <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1.5rem">

@@ -44,3 +44,4 @@ require_once $_core . 'agent.php';
 require_once $_core . 'synapse.php';
 require_once $_core . 'api_auth.php';
 require_once $_core . 'webhooks.php';
+require_once $_core . 'synapse_plus.php';

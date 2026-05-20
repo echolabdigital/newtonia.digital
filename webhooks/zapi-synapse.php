@@ -145,6 +145,14 @@ if (in_array($conv['status'] ?? '', ['paused', 'human'])) {
 $inboundId = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
 webhook_event_message_received($tenantId, $conv, $inboundId, $inbound);
 
+// ── Keyword triggers (inbound) ────────────────────────────────────────────────
+$kwResult = kw_evaluate($agentId, $tenantId, (int)$conv['id'], $inbound, 'in');
+if ($kwResult['handoff'] || $kwResult['pause']) {
+    synapse_trigger_handoff($tenantId, $conv, $kwResult['handoff'] ? 'keyword_handoff' : 'keyword_pause');
+    echo json_encode(['ok' => true, 'skip' => 'keyword_trigger', 'tags' => $kwResult['tags']]);
+    exit;
+}
+
 // ── Anti-ban: delay de digitação proporcional ─────────────────────────────────
 $typingDelay = min(4, max(1, (int)(strlen($inbound) / 50)));
 sleep($typingDelay);
