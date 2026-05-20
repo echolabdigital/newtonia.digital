@@ -33,9 +33,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') !== 'dele
         } else {
             $voice_enabled   = isset($_POST['voice_enabled']) ? 1 : 0;
             $voice_reply     = isset($_POST['voice_reply']) ? 1 : 0;
+            $voice_provider  = in_array($_POST['voice_provider'] ?? 'groq', ['groq','elevenlabs']) ? $_POST['voice_provider'] : 'groq';
             $voice_id        = trim($_POST['voice_id'] ?? '');
             $voice_max_chars = max(50, min(2000, (int)($_POST['voice_max_chars'] ?? 500)));
-            agent_update($id, $tid, compact('name','prompt','model','status','provider','voice_enabled','voice_reply','voice_id','voice_max_chars'));
+            agent_update($id, $tid, compact('name','prompt','model','status','provider','voice_enabled','voice_reply','voice_provider','voice_id','voice_max_chars'));
             $agent = agent_get($id, $tid);
             audit_log('agent.updated','agent',$id);
         }
@@ -194,23 +195,66 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
                 <input type="checkbox" name="voice_reply" <?= ($agent['voice_reply']??0)?'checked':'' ?> onchange="this.nextElementSibling.classList.toggle('on',this.checked)" style="opacity:0;position:absolute;width:0;height:0">
                 <div class="ae-toggle <?= ($agent['voice_reply']??0)?'on':'' ?>"></div>
               </label>
-              <span style="font-size:.875rem;font-weight:500;color:#18181b">Responder em audio quando cliente mandar audio (ElevenLabs)</span>
+              <span style="font-size:.875rem;font-weight:500;color:#18181b">Responder em audio quando cliente mandar audio</span>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 180px;gap:1rem">
+            <?php
+              $vProvider = $agent['voice_provider'] ?? 'groq';
+              $groqVoices = sonar_groq_voices();
+            ?>
+            <div style="display:grid;grid-template-columns:1fr 1fr 140px;gap:1rem">
               <div>
-                <label class="ae-label">Voice ID (ElevenLabs)</label>
-                <input class="ae-input ae-mono" type="text" name="voice_id" value="<?= htmlspecialchars($agent['voice_id'] ?? '') ?>" placeholder="EXAVITQu4vr4xnSDxMaL (deixe vazio = default global)">
-                <div style="font-size:.72rem;color:#8b8a93;margin-top:.2rem">Veja IDs em <a href="https://elevenlabs.io/app/voice-library" target="_blank" style="color:#0ea5e9">voice-library</a></div>
+                <label class="ae-label">Provider TTS</label>
+                <select name="voice_provider" class="ae-input" onchange="sonarProviderChange(this.value)" id="voiceProvider">
+                  <option value="groq" <?= $vProvider==='groq'?'selected':'' ?>>Groq PlayAI — grátis</option>
+                  <option value="elevenlabs" <?= $vProvider==='elevenlabs'?'selected':'' ?>>ElevenLabs — pago</option>
+                </select>
+                <div style="font-size:.72rem;color:#8b8a93;margin-top:.2rem">Groq usa a mesma chave da IA</div>
               </div>
               <div>
-                <label class="ae-label">Max chars por audio</label>
+                <label class="ae-label">Voz</label>
+                <!-- Groq voice picker -->
+                <select name="voice_id_groq" id="voiceIdGroq" class="ae-input" <?= $vProvider!=='groq'?'style="display:none"':'' ?>>
+                  <?php foreach ($groqVoices as $v): ?>
+                    <option value="<?= $v['voice_id'] ?>" <?= ($agent['voice_id']??'')===$v['voice_id']?'selected':'' ?>>
+                      <?= $v['gender']==='F'?'♀':'♂' ?> <?= $v['name'] ?>
+                    </option>
+                  <?php endforeach ?>
+                </select>
+                <!-- ElevenLabs voice ID text input -->
+                <input class="ae-input ae-mono" type="text" id="voiceIdEl" name="voice_id_el" value="<?= $vProvider==='elevenlabs'?htmlspecialchars($agent['voice_id']??''):'' ?>" placeholder="EXAVITQu4vr4xnSDxMaL" <?= $vProvider!=='elevenlabs'?'style="display:none"':'' ?>>
+                <!-- hidden field merged on submit -->
+                <input type="hidden" name="voice_id" id="voiceIdHidden" value="<?= htmlspecialchars($agent['voice_id']??'') ?>">
+                <div id="voiceIdGroqHint" style="font-size:.72rem;color:#8b8a93;margin-top:.2rem" <?= $vProvider!=='groq'?'style="display:none"':'' ?>>PlayAI multilingue — funciona em PT-BR</div>
+                <div id="voiceIdElHint" style="font-size:.72rem;color:#8b8a93;margin-top:.2rem" <?= $vProvider!=='elevenlabs'?'style="display:none"':'' ?>>Veja IDs em <a href="https://elevenlabs.io/app/voice-library" target="_blank" style="color:#0ea5e9">voice-library</a></div>
+              </div>
+              <div>
+                <label class="ae-label">Max chars</label>
                 <input class="ae-input" type="number" name="voice_max_chars" min="50" max="2000" value="<?= (int)($agent['voice_max_chars'] ?? 500) ?>">
                 <div style="font-size:.72rem;color:#8b8a93;margin-top:.2rem">Controle de custo</div>
               </div>
             </div>
-            <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:6px;padding:.5rem .7rem;font-size:.75rem;color:#6b21a8">
-              💡 Whisper (transcribe) usa Groq <b>grátis</b>. ElevenLabs (TTS) cobra ~$0.30/1000 chars. Veja consumo em <a href="/admin/integrations.php" style="color:#7c3aed;text-decoration:underline">Integracoes</a>.
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:.5rem .7rem;font-size:.75rem;color:#166534">
+              🎙 Whisper (transcrição) + PlayAI (TTS) = <b>100% Groq, sem custo extra</b>. ElevenLabs disponível se precisar de vozes clonadas. Veja consumo em <a href="/admin/integrations.php" style="color:#15803d;text-decoration:underline">Integracoes</a>.
             </div>
+            <script>
+            function sonarProviderChange(v) {
+              document.getElementById('voiceIdGroq').style.display = v==='groq'?'':'none';
+              document.getElementById('voiceIdEl').style.display   = v==='elevenlabs'?'':'none';
+              document.getElementById('voiceIdGroqHint').style.display = v==='groq'?'':'none';
+              document.getElementById('voiceIdElHint').style.display   = v==='elevenlabs'?'':'none';
+              syncVoiceId();
+            }
+            function syncVoiceId() {
+              var v = document.getElementById('voiceProvider').value;
+              var val = v==='groq'
+                ? document.getElementById('voiceIdGroq').value
+                : document.getElementById('voiceIdEl').value;
+              document.getElementById('voiceIdHidden').value = val;
+            }
+            document.getElementById('voiceIdGroq').addEventListener('change', syncVoiceId);
+            document.getElementById('voiceIdEl').addEventListener('input',  syncVoiceId);
+            syncVoiceId();
+            </script>
           </div>
         </div>
         <?php endif ?>

@@ -202,7 +202,7 @@ $audioOut     = null;
 if ($replyAsAudio) {
     $maxChars = max(50, min(2000, (int)($agent['voice_max_chars'] ?? 500)));
     $voiceText = mb_strlen($response) > $maxChars ? mb_substr($response, 0, $maxChars) : $response;
-    $audioOut = sonar_tts($tenantId, $agentId, $voiceText, $agent['voice_id'] ?? null);
+    $audioOut = sonar_tts($tenantId, $agentId, $voiceText, $agent['voice_id'] ?? null, $agent['voice_provider'] ?? 'groq');
 }
 
 $outId = synapse_save_message((int)$conv['id'], 'out', $response, $audioOut ? 'audio' : 'text');

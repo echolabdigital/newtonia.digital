@@ -17,11 +17,20 @@ function llm_catalog(): array {
             'icon'   => 'G',
             'desc'   => 'Ultra-rápido · Open-source models',
             'models' => [
-                'llama-3.3-70b-versatile'  => 'Llama 3.3 70B · Versátil (recomendado)',
-                'llama-3.1-8b-instant'     => 'Llama 3.1 8B · Ultra-rápido',
-                'llama3-70b-8192'          => 'Llama 3 70B',
-                'mixtral-8x7b-32768'       => 'Mixtral 8x7B · 32k ctx',
-                'gemma2-9b-it'             => 'Gemma 2 9B (Google)',
+                // ── Llama 4 (Meta) ────────────────────────────────────────────
+                'meta-llama/llama-4-scout-17b-16e-instruct'    => 'Llama 4 Scout 17B · Rápido (recomendado)',
+                'meta-llama/llama-4-maverick-17b-128e-instruct'=> 'Llama 4 Maverick · Melhor qualidade',
+                // ── Llama 3.x ─────────────────────────────────────────────────
+                'llama-3.3-70b-versatile'                      => 'Llama 3.3 70B · Versátil',
+                'llama-3.1-8b-instant'                         => 'Llama 3.1 8B · Ultra-rápido',
+                // ── Qwen (Alibaba) ────────────────────────────────────────────
+                'qwen-qwq-32b'                                 => 'Qwen QwQ 32B · Raciocínio',
+                'qwen/qwen3-32b'                               => 'Qwen 3 32B · Multilingual',
+                // ── DeepSeek Reasoning ────────────────────────────────────────
+                'deepseek-r1-distill-llama-70b'               => 'DeepSeek R1 70B · Chain-of-thought',
+                // ── Legados ───────────────────────────────────────────────────
+                'mixtral-8x7b-32768'                          => 'Mixtral 8x7B · 32k ctx',
+                'gemma2-9b-it'                                => 'Gemma 2 9B (Google)',
             ],
         ],
         'openai' => [
@@ -75,16 +84,19 @@ function llm_catalog(): array {
 
 function llm_provider_from_model(string $model): string {
     $map = [
-        'gpt-'       => 'openai',
-        'claude-'    => 'anthropic',
-        'gemini-'    => 'google',
-        'mistral-'   => 'mistral',
-        'open-mistr' => 'mistral',
-        'open-mixt'  => 'mistral',
-        'llama'      => 'groq',
-        'mixtral'    => 'groq',
-        'gemma'      => 'groq',
-        'whisper'    => 'groq',
+        'gpt-'        => 'openai',
+        'claude-'     => 'anthropic',
+        'gemini-'     => 'google',
+        'mistral-'    => 'mistral',
+        'open-mistr'  => 'mistral',
+        'open-mixt'   => 'mistral',
+        'meta-llama/' => 'groq',
+        'llama'       => 'groq',
+        'mixtral'     => 'groq',
+        'gemma'       => 'groq',
+        'whisper'     => 'groq',
+        'qwen'        => 'groq',
+        'deepseek'    => 'groq',
     ];
     foreach ($map as $prefix => $provider) {
         if (str_starts_with($model, $prefix)) return $provider;
