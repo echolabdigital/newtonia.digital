@@ -1,24 +1,17 @@
 <?php
 /**
- * HERMES.b2b — Abstração de envio de e-mail
+ * Newton IA — Abstração de envio de e-mail
  *
- * Em produção: troca o driver abaixo por 'postmark' ou 'sendgrid'
- * definindo MAIL_DRIVER no config.php ou variável de ambiente.
- * Em local/sandbox: usa mail() nativo do PHP.
+ * Drivers disponíveis (definir MAIL_DRIVER em config.php):
+ *   native   — PHP mail() via relay CyberPanel (padrão)
+ *   smtp     — SMTP direto com STARTTLS (porta 587) ou SSL (porta 465)
+ *   postmark — Postmark API
+ *   sendgrid — SendGrid API
  *
  * Uso:
  *   hermes_mail('destino@email.com', 'Assunto', '<p>HTML body</p>');
  */
 
-/**
- * Envia um e-mail transacional.
- *
- * @param  string $to       Endereço de destino
- * @param  string $subject  Assunto
- * @param  string $body     Corpo em HTML (plain-text gerado automaticamente)
- * @param  array  $opts     ['from'=>'...', 'reply_to'=>'...', 'cc'=>'...']
- * @return bool             true se aceito pelo driver, false em erro
- */
 function hermes_mail(string $to, string $subject, string $body, array $opts = []): bool {
     $driver = defined('MAIL_DRIVER') ? MAIL_DRIVER : (getenv('MAIL_DRIVER') ?: 'native');
 
@@ -33,12 +26,12 @@ function hermes_mail(string $to, string $subject, string $body, array $opts = []
 // ── Drivers ──────────────────────────────────────────────────────────────────
 
 function _hermes_mail_native(string $to, string $subject, string $body, array $opts): bool {
-    $from      = $opts['from']     ?? (defined('MAIL_FROM')    ? MAIL_FROM    : 'noreply@hermesb2b.co');
-    $fromName  = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'HERMES.b2b');
-    $replyTo   = $opts['reply_to'] ?? (defined('MAIL_REPLY_TO') ? MAIL_REPLY_TO : $from);
-    $msgId     = '<' . uniqid('hermes.', true) . '@hermesb2b.co>';
+    $from      = $opts['from']     ?? (defined('MAIL_FROM')      ? MAIL_FROM      : 'noreply@newtonia.digital');
+    $fromName  = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Newton IA');
+    $replyTo   = $opts['reply_to'] ?? (defined('MAIL_REPLY_TO')  ? MAIL_REPLY_TO  : $from);
+    $msgId     = '<' . uniqid('newton.', true) . '@newtonia.digital>';
     $date      = date('r');
-    $unsubUrl  = 'https://app.hermesb2b.co/app/configuracoes.php';
+    $unsubUrl  = 'https://app.newtonia.digital/app/configuracoes.php';
 
     $headers  = "MIME-Version: 1.0\r\n";
     $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
@@ -47,46 +40,43 @@ function _hermes_mail_native(string $to, string $subject, string $body, array $o
     $headers .= "Reply-To: {$replyTo}\r\n";
     $headers .= "Date: {$date}\r\n";
     $headers .= "Message-ID: {$msgId}\r\n";
-    $headers .= "List-Unsubscribe: <mailto:descadastrar@hermesb2b.co?subject=unsubscribe>, <{$unsubUrl}>\r\n";
+    $headers .= "List-Unsubscribe: <mailto:contato@newtonia.digital?subject=unsubscribe>, <{$unsubUrl}>\r\n";
     $headers .= "List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n";
-    $headers .= "X-Mailer: HERMES.b2b\r\n";
+    $headers .= "X-Mailer: Newton IA\r\n";
     $headers .= "X-Priority: 3\r\n";
 
     if (!empty($opts['cc'])) {
         $headers .= "Cc: {$opts['cc']}\r\n";
     }
 
-    // quoted-printable encoding para compatibilidade máxima
     $body_qp = quoted_printable_encode($body);
+    $result  = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body_qp, $headers, '-f ' . $from);
 
-    // -f força o envelope sender (MAIL FROM) — obrigatório para o relay CyberMail
-    $result = @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body_qp, $headers, '-f ' . $from);
     if (!$result) {
-        error_log("[hermes_mail/native] Falha ao enviar para {$to} — assunto: {$subject}");
+        error_log("[newton_mail/native] Falha ao enviar para {$to} — assunto: {$subject}");
     }
     return (bool) $result;
 }
 
 function _hermes_mail_smtp(string $to, string $subject, string $body, array $opts): bool {
-    $host     = defined('SMTP_HOST')     ? SMTP_HOST     : (getenv('SMTP_HOST')     ?: '');
-    $port     = defined('SMTP_PORT')     ? (int)SMTP_PORT : (int)(getenv('SMTP_PORT') ?: 587);
-    $user     = defined('SMTP_USER')     ? SMTP_USER     : (getenv('SMTP_USER')     ?: '');
-    $pass     = defined('SMTP_PASS')     ? SMTP_PASS     : (getenv('SMTP_PASS')     ?: '');
-    $from     = $opts['from']     ?? (defined('MAIL_FROM')      ? MAIL_FROM      : 'noreply@hermesb2b.co');
-    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'HERMES.b2b');
+    $host     = defined('SMTP_HOST') ? SMTP_HOST : (getenv('SMTP_HOST') ?: '');
+    $port     = defined('SMTP_PORT') ? (int)SMTP_PORT : (int)(getenv('SMTP_PORT') ?: 587);
+    $user     = defined('SMTP_USER') ? SMTP_USER : (getenv('SMTP_USER') ?: '');
+    $pass     = defined('SMTP_PASS') ? SMTP_PASS : (getenv('SMTP_PASS') ?: '');
+    $from     = $opts['from']     ?? (defined('MAIL_FROM')      ? MAIL_FROM      : 'noreply@newtonia.digital');
+    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Newton IA');
     $replyTo  = $opts['reply_to'] ?? $from;
 
     if (!$host || !$user) {
-        error_log('[hermes_mail/smtp] SMTP_HOST ou SMTP_USER não configurados.');
+        error_log('[newton_mail/smtp] SMTP_HOST ou SMTP_USER não configurados.');
         return false;
     }
 
-    // Suporte a TLS (porta 587) e SSL (porta 465)
     $prefix = ($port === 465) ? 'ssl://' : '';
     $errno  = 0; $errstr = '';
     $sock = @fsockopen($prefix . $host, $port, $errno, $errstr, 10);
     if (!$sock) {
-        error_log("[hermes_mail/smtp] Falha na conexão {$host}:{$port} — {$errstr}");
+        error_log("[newton_mail/smtp] Falha na conexão {$host}:{$port} — {$errstr}");
         return false;
     }
 
@@ -97,24 +87,21 @@ function _hermes_mail_smtp(string $to, string $subject, string $body, array $opt
     };
 
     $read(); // banner
-    $send("EHLO hermesb2b.co");
-    // Lê todas as linhas do EHLO (multi-line)
+    $send("EHLO newtonia.digital");
     while (true) { $l = $read(); if ($l === false || substr($l, 3, 1) === ' ') break; }
 
-    // STARTTLS se porta 587
     if ($port === 587) {
         $send("STARTTLS");
         stream_socket_enable_crypto($sock, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-        $send("EHLO hermesb2b.co");
+        $send("EHLO newtonia.digital");
         while (true) { $l = $read(); if ($l === false || substr($l, 3, 1) === ' ') break; }
     }
 
-    // Auth LOGIN
     $send("AUTH LOGIN");
     $send(base64_encode($user));
     $authResp = $send(base64_encode($pass));
     if (!str_starts_with(trim($authResp), '235')) {
-        error_log("[hermes_mail/smtp] Auth falhou: {$authResp}");
+        error_log("[newton_mail/smtp] Auth falhou: {$authResp}");
         fclose($sock);
         return false;
     }
@@ -125,7 +112,7 @@ function _hermes_mail_smtp(string $to, string $subject, string $body, array $opt
 
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
     $date    = date('r');
-    $msgId   = '<' . uniqid('hermes', true) . '@hermesb2b.co>';
+    $msgId   = '<' . uniqid('newton', true) . '@newtonia.digital>';
     $plain   = wordwrap(strip_tags($body), 998);
     $htmlB64 = chunk_split(base64_encode($body));
     $plainB64= chunk_split(base64_encode($plain));
@@ -151,7 +138,7 @@ function _hermes_mail_smtp(string $to, string $subject, string $body, array $opt
     fclose($sock);
 
     if (!str_starts_with(trim($dataResp), '250')) {
-        error_log("[hermes_mail/smtp] Envio falhou para {$to}: {$dataResp}");
+        error_log("[newton_mail/smtp] Envio falhou para {$to}: {$dataResp}");
         return false;
     }
     return true;
@@ -159,20 +146,20 @@ function _hermes_mail_smtp(string $to, string $subject, string $body, array $opt
 
 function _hermes_mail_postmark(string $to, string $subject, string $body, array $opts): bool {
     $apiKey   = defined('POSTMARK_API_KEY') ? POSTMARK_API_KEY : getenv('POSTMARK_API_KEY');
-    $from     = $opts['from'] ?? (defined('MAIL_FROM') ? MAIL_FROM : 'noreply@hermesb2b.co');
-    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'HERMES.b2b');
+    $from     = $opts['from']     ?? (defined('MAIL_FROM')      ? MAIL_FROM      : 'noreply@newtonia.digital');
+    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Newton IA');
 
     if (!$apiKey) {
-        error_log('[hermes_mail/postmark] POSTMARK_API_KEY não configurada.');
+        error_log('[newton_mail/postmark] POSTMARK_API_KEY não configurada.');
         return false;
     }
 
     $payload = json_encode([
-        'From'     => "{$fromName} <{$from}>",
-        'To'       => $to,
-        'Subject'  => $subject,
-        'HtmlBody' => $body,
-        'TextBody' => strip_tags($body),
+        'From'          => "{$fromName} <{$from}>",
+        'To'            => $to,
+        'Subject'       => $subject,
+        'HtmlBody'      => $body,
+        'TextBody'      => strip_tags($body),
         'MessageStream' => 'outbound',
     ]);
 
@@ -193,7 +180,7 @@ function _hermes_mail_postmark(string $to, string $subject, string $body, array 
     curl_close($ch);
 
     if ($status !== 200) {
-        error_log("[hermes_mail/postmark] HTTP {$status} para {$to}: {$resp}");
+        error_log("[newton_mail/postmark] HTTP {$status} para {$to}: {$resp}");
         return false;
     }
     return true;
@@ -201,11 +188,11 @@ function _hermes_mail_postmark(string $to, string $subject, string $body, array 
 
 function _hermes_mail_sendgrid(string $to, string $subject, string $body, array $opts): bool {
     $apiKey   = defined('SENDGRID_API_KEY') ? SENDGRID_API_KEY : getenv('SENDGRID_API_KEY');
-    $from     = $opts['from'] ?? (defined('MAIL_FROM') ? MAIL_FROM : 'noreply@hermesb2b.co');
-    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'HERMES.b2b');
+    $from     = $opts['from']     ?? (defined('MAIL_FROM')      ? MAIL_FROM      : 'noreply@newtonia.digital');
+    $fromName = $opts['fromName'] ?? (defined('MAIL_FROM_NAME') ? MAIL_FROM_NAME : 'Newton IA');
 
     if (!$apiKey) {
-        error_log('[hermes_mail/sendgrid] SENDGRID_API_KEY não configurada.');
+        error_log('[newton_mail/sendgrid] SENDGRID_API_KEY não configurada.');
         return false;
     }
 
@@ -234,9 +221,8 @@ function _hermes_mail_sendgrid(string $to, string $subject, string $body, array 
     $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    // SendGrid retorna 202 em sucesso
     if ($status !== 202) {
-        error_log("[hermes_mail/sendgrid] HTTP {$status} para {$to}: {$resp}");
+        error_log("[newton_mail/sendgrid] HTTP {$status} para {$to}: {$resp}");
         return false;
     }
     return true;
