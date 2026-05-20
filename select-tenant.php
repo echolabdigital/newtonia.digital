@@ -32,7 +32,7 @@ if (count($tenants) === 1) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230EA5E9'/%3E%3Ccircle cx='50' cy='50' r='10' fill='%23fff'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6' transform='rotate(60 50 50)'/%3E%3Cellipse cx='50' cy='50' rx='38' ry='13' fill='none' stroke='%23fff' stroke-width='6' transform='rotate(120 50 50)'/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>Selecionar conta — Newton IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
