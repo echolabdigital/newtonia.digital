@@ -63,7 +63,8 @@ foreach ($leads as $l) {
         'state'    => (string)($l['state']    ?? ''),
         'rating'   => isset($l['rating']) ? (float)$l['rating'] : null,
         'notes'    => (string)($l['notes']    ?? ''),
-        'source'   => (string)($l['source']   ?? 'hermes-radar'),
+        'source'       => (string)($l['source']       ?? 'hermes-radar'),
+        'hermes_card_id' => isset($l['hermes_card_id']) ? (int)$l['hermes_card_id'] : null,
     ]);
     if ($id) { $imported++; $ids[] = (int)$id; }
     else { $skipped++; }

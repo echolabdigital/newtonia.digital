@@ -101,8 +101,14 @@ function synapse_get_or_create_conversation(int $agentId, int $tenantId, ?int $c
     );
     if ($conv) return $conv;
 
-    db_q('INSERT INTO conversations (agent_id, channel_id, tenant_id, contact_phone, contact_name, status) VALUES (?, ?, ?, ?, ?, "open")',
-        [$agentId, $channelId, $tenantId, $phone, $name ?: $phone]);
+    // Herda hermes_card_id do lead registrado com esse telefone
+    $hermesCardId = db_val(
+        'SELECT hermes_card_id FROM leads WHERE tenant_id = ? AND phone = ? AND hermes_card_id IS NOT NULL LIMIT 1',
+        [$tenantId, $phone]
+    ) ?: null;
+
+    db_q('INSERT INTO conversations (agent_id, channel_id, tenant_id, contact_phone, contact_name, status, hermes_card_id) VALUES (?, ?, ?, ?, ?, "open", ?)',
+        [$agentId, $channelId, $tenantId, $phone, $name ?: $phone, $hermesCardId ? (int)$hermesCardId : null]);
 
     return db_one('SELECT * FROM conversations WHERE id = ?', [(int)db()->lastInsertId()]);
 }

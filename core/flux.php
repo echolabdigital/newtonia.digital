@@ -59,7 +59,8 @@ function flux_lead_add(int $tenantId, int $listId, array $data): ?int {
         'city'      => mb_substr((string)($data['city']     ?? ''), 0, 100) ?: null,
         'state'     => mb_substr((string)($data['state']    ?? ''), 0, 40)  ?: null,
         'rating'    => isset($data['rating']) ? (float)$data['rating'] : null,
-        'raw_json'  => isset($data['raw']) ? json_encode($data['raw'], JSON_UNESCAPED_UNICODE) : null,
+        'raw_json'      => isset($data['raw']) ? json_encode($data['raw'], JSON_UNESCAPED_UNICODE) : null,
+        'hermes_card_id' => isset($data['hermes_card_id']) ? (int)$data['hermes_card_id'] : null,
     ];
     // dedup por (list_id, phone)
     if ($phone) {

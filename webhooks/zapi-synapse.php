@@ -154,6 +154,14 @@ if ($hermesCardId && function_exists('hermes_ctx')) {
         echo json_encode(['ok' => true, 'skip' => 'hermes_human_lock', 'card' => $hermesCardId]);
         exit;
     }
+    // Persiste hermes_chat_id na conversa para habilitar pause/resume
+    if ($hermesCtx && !$hermesChatId) {
+        $freshChatId = (int)($hermesCtx['chat']['chat_id'] ?? 0);
+        if ($freshChatId) {
+            db_q('UPDATE conversations SET hermes_chat_id = ? WHERE id = ?', [$freshChatId, (int)$conv['id']]);
+            $hermesChatId = $freshChatId;
+        }
+    }
 }
 
 // Handoff humano — salva mensagem mas não responde
