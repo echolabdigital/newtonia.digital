@@ -183,3 +183,19 @@ function support_label(string $level): string
         'dedicated' => 'SLA dedicado',
     ][$level] ?? $level;
 }
+
+
+// ── Aliases de compatibilidade (hermes_ → newton_) ──────────────────────────
+function hermes_plans_list(bool $only_public = false): array  { return newton_plans_list($only_public); }
+function hermes_plan_by_code(string $tierCode): ?array        { return newton_plan_by_code($tierCode); }
+
+function hermes_lead_packs(): array
+{
+    return [
+        ['leads' => 500,   'price_cents' => 4700,  'per_lead' => 9.40],
+        ['leads' => 2000,  'price_cents' => 14700, 'per_lead' => 7.35],
+        ['leads' => 5000,  'price_cents' => 29700, 'per_lead' => 5.94],
+        ['leads' => 10000, 'price_cents' => 49700, 'per_lead' => 4.97],
+    ];
+}
+

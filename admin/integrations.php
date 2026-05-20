@@ -93,7 +93,7 @@ admin_layout('Integrações · IA', 'integrations', function() use ($catalog) {
 
 <div style="max-width:1000px;margin:0 auto;padding:2rem 1.5rem">
 
-  <?php $f = flash(); if ($f): ?>
+  <?php $f = flash_get(); if ($f): ?>
   <div style="padding:.75rem 1rem;border-radius:10px;margin-bottom:1.5rem;background:<?= $f['type']==='success'?'#f0fdf4':'#fef2f2' ?>;color:<?= $f['type']==='success'?'#16a34a':'#dc2626' ?>;border:1px solid <?= $f['type']==='success'?'#bbf7d0':'#fecaca' ?>;font-size:.875rem">
     <?= htmlspecialchars($f['msg']) ?>
   </div>

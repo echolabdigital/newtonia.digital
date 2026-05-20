@@ -55,12 +55,7 @@ if (isset($_POST['action'])) {
     }
 
     if ($_POST['action'] === 'liberate_credits') {
-        $c = (int) ($_POST['credits'] ?? 0);
-        if ($c > 0 && $c <= 100000) {
-            db_q('UPDATE tenants SET cnpj_addon_credits = cnpj_addon_credits + ? WHERE id = ?', [$c, $tid]);
-            audit_log('tenant.liberate_credits', 'tenant', $tid, ['credits' => $c]);
-        }
-        echo json_encode(['ok' => true]);
+        echo json_encode(['ok' => true]); // not applicable in Newton
         exit;
     }
 
@@ -134,16 +129,16 @@ $pending_pay = db_one(
 
 // Métricas
 $metrics = [
-    'cards_count'      => (int) db_val('SELECT COUNT(*) FROM crm_cards WHERE tenant_id = ?', [$tid]),
+    'cards_count'      => (int) db_val('SELECT COUNT(*) FROM agents WHERE tenant_id = ?', [$tid]),
     'leads_used_month' => (int) db_val(
-        "SELECT COALESCE(SUM(records_count),0) FROM cnpj_download_log
-         WHERE tenant_id = ? AND YEAR(downloaded_at) = YEAR(NOW()) AND MONTH(downloaded_at) = MONTH(NOW())",
+        "SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
+         WHERE c.tenant_id = ? AND YEAR(m.sent_at) = YEAR(NOW()) AND MONTH(m.sent_at) = MONTH(NOW())",
         [$tid]
     ),
-    'leads_used_total' => (int) db_val("SELECT COALESCE(SUM(records_count),0) FROM cnpj_download_log WHERE tenant_id = ?", [$tid]),
+    'leads_used_total' => (int) db_val("SELECT COUNT(*) FROM conversations WHERE tenant_id = ?", [$tid]),
     'users_count'      => (int) db_val('SELECT COUNT(*) FROM tenant_users WHERE tenant_id = ?', [$tid]),
-    'lists_count'      => (int) db_val('SELECT COUNT(*) FROM cnpj_lists WHERE tenant_id = ?', [$tid]),
-    'columns_count'    => (int) db_val('SELECT COUNT(*) FROM crm_columns WHERE tenant_id = ?', [$tid]),
+    'lists_count'      => (int) db_val('SELECT COUNT(*) FROM agent_channels WHERE tenant_id = ?', [$tid]),
+    'columns_count'    => (int) db_val('SELECT COUNT(*) FROM lead_lists WHERE tenant_id = ?', [$tid]),
 ];
 
 // Override de feature por tenant (registros explícitos)
@@ -161,8 +156,8 @@ $users = db_all(
 
 // Histórico recente
 $audit = db_all(
-    "SELECT action, payload, created_at, user_id FROM audit_log
-     WHERE entity = 'tenant' AND entity_id = ? ORDER BY created_at DESC LIMIT 20",
+    "SELECT action, meta AS payload, created_at, user_id FROM audit_log
+     WHERE tenant_id = ? ORDER BY created_at DESC LIMIT 20",
     [$tid]
 );
 
@@ -170,7 +165,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
     $tier = $t['tier_code'] ?: 'none';
     $brand_color = $t['brand_color'] ?: '#0ea5e9';
     $initial = strtoupper(mb_substr($t['brand_name'] ?: $t['name'], 0, 1));
-    $leads_limit = (int)$t['plan_radar_limit'] + (int)$t['cnpj_addon_credits'];
+    $leads_limit = (int)$t['plan_radar_limit'];
     $leads_used  = $metrics['leads_used_month'];
     $leads_pct   = $leads_limit > 0 ? min(100, round(($leads_used / $leads_limit) * 100)) : 0;
 ?>
@@ -267,7 +262,7 @@ admin_layout($t['name'] . ' · Detalhes', 'tenants', function() use ($t, $plans,
     <div class="l">Extrações no mês</div>
     <div class="v"><?= number_format($leads_used, 0, ',', '.') ?> <small>/ <?= number_format($leads_limit, 0, ',', '.') ?></small></div>
     <div class="bar"><i class="<?= $leads_pct >= 90 ? 'danger' : ($leads_pct >= 70 ? 'warn' : '') ?>" style="width:<?= $leads_pct ?>%"></i></div>
-    <div class="sub"><?= $leads_pct ?>% usado · <?= number_format((int)$t['cnpj_addon_credits'], 0, ',', '.') ?> créditos extras</div>
+    <div class="sub"><?= $leads_pct ?>% utilizado</div>
   </div>
   <div class="td-kpi">
     <div class="l">Pipeline cards</div>

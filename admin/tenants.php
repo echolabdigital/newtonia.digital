@@ -15,7 +15,8 @@ if (isset($_POST['action'])) {
     if ($_POST['action'] === 'liberate_credits') {
         $credits = (int) ($_POST['credits'] ?? 0);
         if ($credits <= 0 || $credits > 100000) { echo json_encode(['error' => 'invalid credits']); exit; }
-        db_q('UPDATE tenants SET cnpj_addon_credits = cnpj_addon_credits + ? WHERE id = ?', [$credits, $tid]);
+        // liberate_credits: não aplicável no Newton (sem CNPJ credits)
+        echo json_encode(['error' => 'not_applicable']); exit;
         audit_log('tenant.liberate_credits', 'tenant', $tid, ['credits' => $credits]);
         echo json_encode(['ok' => true]);
         exit;
@@ -68,11 +69,11 @@ $tenants = db_all(
             p.name AS plan_name, p.tier_code, p.price_cents,
             p.limit_cnpj_monthly AS plan_radar_limit,
             p.limit_contacts AS plan_pipeline_limit,
-            (SELECT COUNT(*) FROM crm_cards WHERE tenant_id = t.id) AS cards_count,
-            (SELECT COALESCE(SUM(records_count), 0) FROM cnpj_download_log
-             WHERE tenant_id = t.id
-               AND YEAR(downloaded_at) = YEAR(NOW())
-               AND MONTH(downloaded_at) = MONTH(NOW())) AS leads_used_month,
+            (SELECT COUNT(*) FROM agents WHERE tenant_id = t.id) AS cards_count,
+            (SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id = m.conversation_id
+             WHERE c.tenant_id = t.id
+               AND YEAR(m.sent_at) = YEAR(NOW())
+               AND MONTH(m.sent_at) = MONTH(NOW())) AS leads_used_month,
             (SELECT MAX(u.last_login_at) FROM users u
              JOIN tenant_users tu ON tu.user_id = u.id
              WHERE tu.tenant_id = t.id) AS last_login,
@@ -193,7 +194,7 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
       $tier_label = $t['plan_name'] ?: 'Sem plano';
       $cards = (int)$t['cards_count'];
       $leads_used = (int)$t['leads_used_month'];
-      $leads_limit = (int)$t['plan_radar_limit'] + (int)$t['cnpj_addon_credits'];
+      $leads_limit = (int)$t['plan_radar_limit'];
       $leads_pct = $leads_limit > 0 ? min(100, round(($leads_used / $leads_limit) * 100)) : 0;
       $pct_cls = $leads_pct >= 90 ? 'danger' : ($leads_pct >= 70 ? 'warn' : '');
       $last_login = $t['last_login'] ? date('d/m H:i', strtotime($t['last_login'])) : '—';
@@ -221,15 +222,15 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
           <div class="tn-metrics">
             <div class="tn-metric">
               <div class="v <?= $pct_cls ?>"><?= number_format($leads_used, 0, ',', '.') ?></div>
-              <div class="l">extrações / <?= number_format($leads_limit, 0, ',', '.') ?></div>
+              <div class="l">msgs / <?= number_format($leads_limit, 0, ',', '.') ?></div>
             </div>
             <div class="tn-metric">
               <div class="v"><?= number_format($cards, 0, ',', '.') ?></div>
-              <div class="l">cards no Pipeline</div>
+              <div class="l">agentes ativos</div>
             </div>
             <div class="tn-metric">
-              <div class="v"><?= number_format((int)$t['cnpj_addon_credits'], 0, ',', '.') ?></div>
-              <div class="l">créditos extras</div>
+              <div class="v">—</div>
+              <div class="l">canais WA</div>
             </div>
           </div>
         </td>

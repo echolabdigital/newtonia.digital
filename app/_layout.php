@@ -249,13 +249,7 @@ code, pre, .mono, [data-mono] { font-family: 'Geist Mono', 'JetBrains Mono', Con
 </head>
 <body>
 
-<?php
-// Itens pra bottom nav: até 5 primeiros não-soon, não-section
-$bottomItems = array_slice(
-    array_values(array_filter($filtered, fn($i) => ($i['type'] ?? '') !== 'section' && empty($i['soon']))),
-    0, 5
-);
-?>
+<?php $bottomItems = []; // calculado abaixo, após $filtered ?>
 
 <!-- ── Mobile Top Bar ─────────────────────────────────────────── -->
 <div class="mob-topbar">
@@ -366,6 +360,10 @@ $bottomItems = array_slice(
             $filtered[] = $i;
         }
     }
+    $bottomItems = array_slice(
+        array_values(array_filter($filtered, fn($i) => ($i['type'] ?? '') !== 'section' && empty($i['soon']))),
+        0, 5
+    );
     ?>
     <?php foreach ($filtered as $i): ?>
       <?php if (($i['type'] ?? '') === 'section'): ?>

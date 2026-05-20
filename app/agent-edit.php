@@ -127,7 +127,7 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
     <span style="color:#18181b"><?= $title ?></span>
   </div>
 
-<?php $f = flash(); if ($f): ?>
+<?php $f = flash_get(); if ($f): ?>
   <div style="padding:.75rem 1rem;border-radius:8px;margin-bottom:1.2rem;background:<?= $f['type']==='success'?'#f0fdf4':'#fef2f2' ?>;color:<?= $f['type']==='success'?'#16a34a':'#dc2626' ?>;border:1px solid <?= $f['type']==='success'?'#bbf7d0':'#fecaca' ?>;font-size:.875rem">
     <?= htmlspecialchars($f['msg']) ?>
   </div>
