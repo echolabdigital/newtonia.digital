@@ -30,6 +30,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($key   && $key   !== '••••••••') setting_set('elevenlabs.api_key', $key, auth_user_id(), true);
         if ($voice) setting_set('elevenlabs.default_voice', $voice, auth_user_id());
         flash('success', 'ElevenLabs atualizado.');
+    } elseif ($provider === 'hermes') {
+        $apiKey = trim($_POST['hermes_key'] ?? '');
+        $baseUrl = trim($_POST['hermes_base'] ?? 'https://app.hermesb2b.co/api/v1');
+        if ($apiKey && $apiKey !== 'â¢â¢â¢â¢â¢â¢â¢â¢') setting_set('hermes.api_key', $apiKey, auth_user_id(), true);
+        setting_set('hermes.base_url', $baseUrl, auth_user_id());
+        flash_set('success', 'Hermes API atualizado.');
     } elseif (isset($catalog[$provider])) {
         $key     = trim($_POST['api_key'] ?? '');
         $enabled = isset($_POST['enabled']) ? '1' : '0';
@@ -45,6 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['test'])) {
     header('Content-Type: application/json');
     $p = $_GET['test'];
+    if ($p === 'hermes') {
+        require_once __DIR__ . '/../core/hermes_api.php';
+        $tid = 1; // super-admin usa tenant 1
+        $ping = hermes_ping($tid);
+        echo json_encode(['ok' => $ping !== null, 'tenant_id' => $ping]);
+        exit;
+    }
     if ($p === 'zapi') {
         require_once __DIR__ . '/../core/zapi.php';
         $partner = setting_get('zapi.partner_token') ?: '';
@@ -344,6 +357,53 @@ admin_layout('Integrações · IA', 'integrations', function() use ($catalog) {
       </div>
     </form>
   </div>
+
+  <!-- HERMES API -->
+  <div class="pcard">
+    <div class="pcard-head">
+      <div class="provider-icon" style="background:#0f172a;color:#10b981;font-size:.85rem">H</div>
+      <div>
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:2px">Hermes b2b</div>
+        <div style="font-size:.78rem;color:#8b8a93">Public API v1 — CRM, Signal, Radar, Whats Lab</div>
+      </div>
+      <?php $hermesConfigured = (bool) setting_get('hermes.api_key'); ?>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:6px">
+        <div class="dot-status" style="background:<?= $hermesConfigured ? '#22c55e;box-shadow:0 0 6px rgba(34,197,94,.4)' : '#d1d5db' ?>"></div>
+        <span style="font-size:.72rem;font-weight:600;color:<?= $hermesConfigured ? '#16a34a' : '#94a3b8' ?>">
+          <?= $hermesConfigured ? 'Conectado' : 'Sem API key' ?>
+        </span>
+      </div>
+    </div>
+    <form method="POST">
+      <?= csrf_field() ?>
+      <input type="hidden" name="provider" value="hermes">
+      <div class="pcard-body">
+        <div>
+          <div class="field-label">API Key (nhk_...)</div>
+          <div style="display:flex;gap:6px">
+            <input class="field-input" type="password" name="hermes_key"
+                   value="<?= $hermesConfigured ? 'â¢â¢â¢â¢â¢â¢â¢â¢' : '' ?>"
+                   placeholder="nhk_<32hex> — gere em /app/api-keys.php no Hermes">
+            <button type="button" onclick="toggleVis(this.previousElementSibling)" style="padding:0 10px;border:1px solid #e7e5e0;border-radius:8px;background:#fff;cursor:pointer">👁</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Base URL</div>
+          <input class="field-input" type="text" name="hermes_base"
+                 value="<?= htmlspecialchars(setting_get('hermes.base_url') ?: 'https://app.hermesb2b.co/api/v1') ?>"
+                 placeholder="https://app.hermesb2b.co/api/v1">
+        </div>
+      </div>
+      <div class="pcard-foot">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button type="button" class="btn-test" onclick="testProvider('hermes', this)">Testar conexão</button>
+          <div id="test-result-hermes" style="font-size:.78rem;display:none"></div>
+        </div>
+        <button type="submit" class="btn-save">Salvar</button>
+      </div>
+    </form>
+  </div>
+
 
 </div>
 

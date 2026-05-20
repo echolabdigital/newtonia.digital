@@ -14,6 +14,7 @@ require_once __DIR__ . '/../core/agent.php';
 require_once __DIR__ . '/../core/synapse.php';
 require_once __DIR__ . '/../core/zapi.php';
 require_once __DIR__ . '/../core/llm.php';
+require_once __DIR__ . '/../core/hermes_api.php';
 
 header('Content-Type: application/json');
 
@@ -140,6 +141,21 @@ if ($inbound === '') {
 // ── Conversa ──────────────────────────────────────────────────────────────────
 $conv = synapse_get_or_create_conversation($agentId, $tenantId, $channelId, $phone, $senderName);
 
+// ── Hermes: fetch contexto + lock cooperativo ────────────────────────────────
+$hermesCtx    = null;
+$hermesCardId = (int)($conv['hermes_card_id'] ?? 0);
+$hermesChatId = (int)($conv['hermes_chat_id'] ?? 0);
+if ($hermesCardId && function_exists('hermes_ctx')) {
+    $hermesCtx = hermes_ctx($tenantId, $hermesCardId);
+    if ($hermesCtx && ($hermesCtx['chat']['handled_by'] ?? '') === 'human') {
+        $mid = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+        webhook_event_message_received($tenantId, $conv, $mid, $inbound);
+        error_log("[newton/zapi] HERMES lock handled_by=human card={$hermesCardId} conv=" . (int)$conv["id"]);
+        echo json_encode(['ok' => true, 'skip' => 'hermes_human_lock', 'card' => $hermesCardId]);
+        exit;
+    }
+}
+
 // Handoff humano — salva mensagem mas não responde
 if (in_array($conv['status'] ?? '', ['paused', 'human'])) {
     $mid = synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
@@ -176,7 +192,8 @@ $limit    = max(6, (int)($agent['context_window'] ?? 20));
 $history  = synapse_get_history((int)$conv['id'], $limit);
 $messages = [['role' => 'system', 'content' => synapse_build_system(
     $agent,
-    array_merge($conv, ['contact_name' => $senderName ?: $phone])
+    array_merge($conv, ['contact_name' => $senderName ?: $phone]),
+    $hermesCtx
 )]];
 foreach ($history as $row) {
     $messages[] = ['role' => $row['direction'] === 'in' ? 'user' : 'assistant', 'content' => $row['content']];

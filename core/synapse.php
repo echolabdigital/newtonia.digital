@@ -33,12 +33,20 @@ function synapse_process(array $agent, array $conv, string $inbound, ?array $cha
     return $response;
 }
 
-function synapse_build_system(array $agent, array $conv): string {
+/**
+ * Monta o system prompt do agente.
+ *
+ * @param array      $agent  Row da tabela agents
+ * @param array      $conv   Row da tabela conversations (precisa de contact_name/contact_phone)
+ * @param array|null $hermesCtx  Contexto rico retornado por hermes_ctx() — opcional
+ */
+function synapse_build_system(array $agent, array $conv, ?array $hermesCtx = null): string
+{
     $name   = $conv['contact_name'] ?: $conv['contact_phone'];
     $prompt = trim($agent['prompt']);
     $now    = date('d/m/Y H:i');
 
-    // Knowledge base injection (se houver snippets habilitados)
+    // Knowledge base injection
     $kb = '';
     if (function_exists('kb_fetch_for_prompt') && !empty($agent['id'])) {
         $kbText = kb_fetch_for_prompt((int)$agent['id']);
@@ -47,9 +55,15 @@ function synapse_build_system(array $agent, array $conv): string {
         }
     }
 
+    // Contexto Hermes CRM — injeta antes da instrucao de resposta
+    $hermesBlock = '';
+    if ($hermesCtx && function_exists('hermes_build_context_block')) {
+        $hermesBlock = "\n\n" . hermes_build_context_block($hermesCtx);
+    }
+
     return <<<SYS
 {$prompt}
-{$kb}
+{$kb}{$hermesBlock}
 
 ---
 Contexto atual:
@@ -61,7 +75,7 @@ SYS;
 }
 
 function synapse_test(array $agent, array $chatHistory, string $userMessage): ?string {
-    $messages = [['role' => 'system', 'content' => synapse_build_system($agent, ['contact_name'=>'Teste','contact_phone'=>'0000'])]];
+    $messages = [['role' => 'system', 'content' => synapse_build_system($agent, ['contact_name' => 'Teste', 'contact_phone' => '0000'])]];
     foreach ($chatHistory as $h) {
         if (!empty($h['role']) && !empty($h['content'])) $messages[] = $h;
     }
