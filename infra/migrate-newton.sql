@@ -40,12 +40,24 @@ VALUES
     ('business', 'newton-business', 'Business', 149700,  1497000, 999, 30000, 15, 15, 0, 1, 'sla',       0,  1, 3, '{"agents":-1,"channels":15,"messages_monthly":30000,"inbox":true,"api_access":true}');
 
 -- ── 3. Garantir colunas Newton nas tabelas SYNAPSE ─────────────────────────
--- agents: adicionar provider se não existir
-ALTER TABLE agents ADD COLUMN IF NOT EXISTS provider VARCHAR(40) DEFAULT NULL;
-ALTER TABLE agents ADD COLUMN IF NOT EXISTS context_window INT DEFAULT 20;
+-- agents
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS provider       VARCHAR(40) DEFAULT NULL;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS context_window INT         DEFAULT 20;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS widget_enabled  TINYINT      DEFAULT 0;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS widget_color    VARCHAR(10)  DEFAULT '#0ea5e9';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS widget_position VARCHAR(20)  DEFAULT 'bottom-right';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS widget_greeting VARCHAR(255) DEFAULT 'Olá! Como posso ajudar?';
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS allowed_domains TEXT         DEFAULT NULL;
+ALTER TABLE agents ADD COLUMN IF NOT EXISTS embed_token     VARCHAR(64)  DEFAULT NULL;
 
--- conversations: adicionar sent_by_human tracking
-ALTER TABLE messages ADD COLUMN IF NOT EXISTS sent_by_human TINYINT DEFAULT 0;
+-- agent_channels
+ALTER TABLE agent_channels ADD COLUMN IF NOT EXISTS connected_at TIMESTAMP NULL DEFAULT NULL;
+
+-- messages
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS sent_by_human TINYINT     DEFAULT 0;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS zapi_msg_id   VARCHAR(120) DEFAULT NULL;
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS status        VARCHAR(20)  DEFAULT 'sent';
+ALTER TABLE messages ADD INDEX IF NOT EXISTS idx_zapi_msg (zapi_msg_id);
 
 -- ── 4. Garantir tabelas SYNAPSE (caso não existam) ─────────────────────────
 CREATE TABLE IF NOT EXISTS agents (
@@ -66,7 +78,7 @@ CREATE TABLE IF NOT EXISTS agent_channels (
     id INT AUTO_INCREMENT PRIMARY KEY,
     agent_id INT NOT NULL,
     tenant_id INT NOT NULL,
-    channel_type VARCHAR(20) DEFAULT 'whatsapp',
+    channel_type VARCHAR(30) DEFAULT 'whatsapp_zapi',
     instance_id VARCHAR(80),
     token VARCHAR(120),
     client_token VARCHAR(120),
@@ -74,10 +86,12 @@ CREATE TABLE IF NOT EXISTS agent_channels (
     webhook_token VARCHAR(60),
     status VARCHAR(20) DEFAULT 'disconnected',
     config_json TEXT,
+    connected_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_agent (agent_id),
-    INDEX idx_tenant (tenant_id)
+    INDEX idx_tenant (tenant_id),
+    INDEX idx_webhook_token (webhook_token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS conversations (
@@ -103,12 +117,15 @@ CREATE TABLE IF NOT EXISTS messages (
     content TEXT,
     type VARCHAR(20) DEFAULT 'text',
     sent_by_human TINYINT DEFAULT 0,
+    zapi_msg_id VARCHAR(120) DEFAULT NULL,
+    status VARCHAR(20) DEFAULT 'sent',
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_conv (conversation_id),
-    INDEX idx_sent_at (sent_at)
+    INDEX idx_sent_at (sent_at),
+    INDEX idx_zapi_msg (zapi_msg_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ── 5. Limpar login_rate_limits se não existir ─────────────────────────────
+-- ── 5. Tabelas auxiliares ──────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS login_rate_limits (
     id INT AUTO_INCREMENT PRIMARY KEY,
     identifier VARCHAR(120) NOT NULL,
@@ -116,6 +133,23 @@ CREATE TABLE IF NOT EXISTS login_rate_limits (
     blocked_until TIMESTAMP NULL DEFAULT NULL,
     last_attempt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uniq_id (identifier)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Z-API pool: rastreia instâncias compartilhadas entre Newton e HERMES
+CREATE TABLE IF NOT EXISTS zapi_instance_pool (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    instance_id VARCHAR(80) NOT NULL UNIQUE,
+    token VARCHAR(120) NOT NULL,
+    client_token VARCHAR(120) NOT NULL,
+    middleware ENUM('web','mobile') DEFAULT 'mobile',
+    name VARCHAR(160) DEFAULT NULL,
+    tenant_id INT DEFAULT NULL,
+    product ENUM('newton','hermes','shared') DEFAULT 'newton',
+    notes TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_tenant (tenant_id),
+    INDEX idx_product (product)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 SET FOREIGN_KEY_CHECKS = 1;

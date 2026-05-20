@@ -314,19 +314,31 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
           </div>
         </div>
 
+        <!-- Auto-discover button -->
+        <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:.85rem 1rem;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:.84rem;font-weight:600;color:#0c4a6e;margin-bottom:.15rem">🔍 Auto-descobrir instâncias</div>
+            <div style="font-size:.78rem;color:#0369a1;line-height:1.45">Listar instâncias Z-API disponíveis na conta da plataforma e preencher os campos automaticamente.</div>
+          </div>
+          <button type="button" onclick="discoverInstances()" id="discoverBtn" style="padding:.55rem 1rem;background:#fff;color:#0284c7;border:1px solid #bae6fd;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;white-space:nowrap">
+            Listar instâncias
+          </button>
+        </div>
+        <div id="discoverList" style="display:none"></div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
           <div>
             <label class="ae-label">Instance ID</label>
-            <input class="ae-input ae-mono" type="text" name="zapi_instance" value="<?= htmlspecialchars($chCfg['instance']??'') ?>" placeholder="3ABC123...">
+            <input class="ae-input ae-mono" type="text" name="zapi_instance" id="fInstance" value="<?= htmlspecialchars($chCfg['instance']??'') ?>" placeholder="3ABC123...">
           </div>
           <div>
             <label class="ae-label">Token</label>
-            <input class="ae-input ae-mono" type="text" name="zapi_token" value="<?= htmlspecialchars($chCfg['token']??'') ?>" placeholder="Token da instancia">
+            <input class="ae-input ae-mono" type="text" name="zapi_token" id="fToken" value="<?= htmlspecialchars($chCfg['token']??'') ?>" placeholder="Token da instancia">
           </div>
         </div>
         <div>
           <label class="ae-label">Client Token</label>
-          <input class="ae-input ae-mono" type="text" name="zapi_client" value="<?= htmlspecialchars($chCfg['client_token']??'') ?>" placeholder="Painel Z-API > Security > Client Token">
+          <input class="ae-input ae-mono" type="text" name="zapi_client" id="fClient" value="<?= htmlspecialchars($chCfg['client_token']??'') ?>" placeholder="Painel Z-API > Security > Client Token">
         </div>
         <?php if ($webhookUrl): ?>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:.85rem 1rem">
@@ -522,6 +534,72 @@ function mobileBackStep1(){
   document.getElementById('mobileStep1').style.display = 'block';
   document.getElementById('mobileStep2').style.display = 'none';
   document.getElementById('mobileMsg').style.display = 'none';
+}
+
+async function discoverInstances(){
+  var btn  = document.getElementById('discoverBtn');
+  var list = document.getElementById('discoverList');
+  btn.disabled = true; btn.textContent = 'Buscando...';
+  list.style.display = 'block';
+  list.innerHTML = '<div style="padding:.85rem;font-size:.82rem;color:#64748b">Consultando Z-API Partner API...</div>';
+  try {
+    var mw = (document.querySelector('input[name=zapi_middleware]:checked') || {value:'mobile'}).value;
+    var r = await fetch('/app/agent-discover.php?middleware=' + mw).then(r=>r.json());
+    if (!r.ok) {
+      list.innerHTML = '<div style="padding:.85rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:.82rem;color:#991b1b">✗ ' + (r.error || 'Erro ao buscar') + '</div>';
+      return;
+    }
+    if (!r.instances.length) {
+      list.innerHTML = '<div style="padding:.85rem;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:.82rem;color:#92400e">⚠ Nenhuma instância ' + mw + ' encontrada. Crie no painel Z-API primeiro.</div>';
+      return;
+    }
+    var html = '<div style="border:1px solid #e7e5e0;border-radius:10px;overflow:hidden">';
+    r.instances.forEach(function(i, idx){
+      var inUse  = i.in_use && !i.in_use_by_me;
+      var thisAgent = i.in_use_by_me;
+      var phone = i.phone_connected ? '📱 ' + i.phone_connected : '<span style="color:#94a3b8">não conectado</span>';
+      var badge = '';
+      if (inUse)     badge = '<span style="font-size:.66rem;background:#fef2f2;color:#dc2626;padding:2px 7px;border-radius:4px;font-weight:600;font-family:Geist Mono,monospace;letter-spacing:.04em">Em uso por outro tenant</span>';
+      else if (thisAgent) badge = '<span style="font-size:.66rem;background:#f0fdf4;color:#16a34a;padding:2px 7px;border-radius:4px;font-weight:600;font-family:Geist Mono,monospace;letter-spacing:.04em">Em uso aqui</span>';
+      else               badge = '<span style="font-size:.66rem;background:#f0f9ff;color:#0284c7;padding:2px 7px;border-radius:4px;font-weight:600;font-family:Geist Mono,monospace;letter-spacing:.04em">Disponível</span>';
+
+      html += '<div style="display:flex;align-items:center;gap:.85rem;padding:.85rem 1rem;border-bottom:' + (idx < r.instances.length-1 ? '1px solid #f4f2ed' : 'none') + ';background:' + (inUse ? '#fafafa' : '#fff') + ';opacity:' + (inUse ? '.55' : '1') + '">';
+      html += '  <div style="flex:1;min-width:0">';
+      html += '    <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">';
+      html += '      <strong style="font-size:.86rem;color:#18181b">' + (i.name || 'Sem nome') + '</strong>';
+      html += '      ' + badge;
+      html += '      <span style="font-size:.62rem;font-family:Geist Mono,monospace;background:#f4f2ed;color:#64748b;padding:1px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.04em">' + i.middleware + '</span>';
+      html += '    </div>';
+      html += '    <div style="font-size:.74rem;color:#8b8a93;font-family:Geist Mono,monospace">' + i.id.substring(0,20) + '... · ' + phone + '</div>';
+      html += '  </div>';
+      if (!inUse) {
+        html += '  <button type="button" onclick="useInstance(\'' + i.id + '\', \'' + i.token + '\', \'' + r.client_token + '\')" style="padding:.45rem .85rem;background:#0ea5e9;color:#fff;border:none;border-radius:7px;font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap">Usar essa</button>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+    list.innerHTML = html;
+  } catch(e) {
+    list.innerHTML = '<div style="padding:.85rem;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:.82rem;color:#991b1b">✗ Erro: ' + e.message + '</div>';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Listar instâncias';
+  }
+}
+
+function useInstance(id, token, clientToken){
+  document.getElementById('fInstance').value = id;
+  document.getElementById('fToken').value    = token;
+  if (clientToken && !document.getElementById('fClient').value) {
+    document.getElementById('fClient').value = clientToken;
+  }
+  // Highlight
+  ['fInstance','fToken','fClient'].forEach(function(fid){
+    var el = document.getElementById(fid);
+    el.style.borderColor = '#22c55e';
+    setTimeout(function(){ el.style.borderColor = ''; }, 1500);
+  });
+  document.getElementById('discoverList').style.display = 'none';
+  window.scrollTo({ top: document.getElementById('fInstance').offsetTop - 100, behavior: 'smooth' });
 }
 
 async function mobileConfirmCode(){

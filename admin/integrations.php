@@ -14,6 +14,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setting_set('asaas.env',          trim($_POST['asaas_env'] ?? 'sandbox'), auth_user_id());
         setting_set('asaas.webhook_token',trim($_POST['asaas_webhook'] ?? ''), auth_user_id(), true);
         flash('success', 'Asaas atualizado.');
+    } elseif ($provider === 'zapi') {
+        $partner = trim($_POST['zapi_partner'] ?? '');
+        $client  = trim($_POST['zapi_client'] ?? '');
+        if ($partner && $partner !== '••••••••') setting_set('zapi.partner_token', $partner, auth_user_id(), true);
+        if ($client  && $client  !== '••••••••') setting_set('zapi.default_client_token', $client, auth_user_id(), true);
+        flash('success', 'Z-API atualizado.');
     } elseif (isset($catalog[$provider])) {
         $key     = trim($_POST['api_key'] ?? '');
         $enabled = isset($_POST['enabled']) ? '1' : '0';
@@ -29,6 +35,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['test'])) {
     header('Content-Type: application/json');
     $p = $_GET['test'];
+    if ($p === 'zapi') {
+        require_once __DIR__ . '/../core/zapi.php';
+        $partner = setting_get('zapi.partner_token') ?: '';
+        if (!$partner) { echo json_encode(['ok' => false, 'error' => 'sem partner token']); exit; }
+        $list = zapi_partner_list($partner);
+        echo json_encode([
+            'ok'        => is_array($list),
+            'instances' => count($list),
+            'web'       => count(array_filter($list, fn($i) => ($i['middleware'] ?? 'web') === 'web')),
+            'mobile'    => count(array_filter($list, fn($i) => ($i['middleware'] ?? 'web') === 'mobile')),
+        ]);
+        exit;
+    }
     echo json_encode(llm_test($p));
     exit;
 }
@@ -149,6 +168,65 @@ admin_layout('Integrações · IA', 'integrations', function() use ($catalog) {
     <?php endforeach ?>
   </div>
 
+  <!-- Z-API Partner (WhatsApp) -->
+  <?php
+    $zapiPartner   = setting_get('zapi.partner_token') ?: '';
+    $zapiClient    = setting_get('zapi.default_client_token') ?: '';
+    $zapiConfigured = !empty($zapiPartner) && !empty($zapiClient);
+  ?>
+  <div class="pcard" style="margin-bottom:1.5rem">
+    <div class="pcard-head">
+      <div class="provider-icon" style="background:#25d36618;color:#25d366">Z</div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+          <span style="font-size:1rem;font-weight:700;color:#18181b">Z-API · WhatsApp</span>
+          <div style="display:flex;align-items:center;gap:.35rem">
+            <div class="dot-status" style="background:<?= $zapiConfigured ? '#22c55e;box-shadow:0 0 6px rgba(34,197,94,.4)' : '#d1d5db' ?>"></div>
+            <span style="font-size:.72rem;font-weight:600;color:<?= $zapiConfigured ? '#16a34a' : '#94a3b8' ?>">
+              <?= $zapiConfigured ? 'Configurado' : 'Sem credenciais' ?>
+            </span>
+          </div>
+        </div>
+        <div style="font-size:.8rem;color:#8b8a93">Credenciais Partner para auto-descobrir instâncias e criar webhooks dos agentes Newton IA.</div>
+      </div>
+    </div>
+    <form method="POST">
+      <?= csrf_field() ?>
+      <input type="hidden" name="provider" value="zapi">
+      <div class="pcard-body" style="display:grid;grid-template-columns:1fr;gap:1rem">
+        <div>
+          <label class="field-label">Partner Token (JWT)</label>
+          <div style="position:relative">
+            <input class="field-input" type="password" name="zapi_partner"
+                   value="<?= $zapiPartner ? '••••••••' : '' ?>"
+                   placeholder="<?= $zapiPartner ? '(mantém o token atual)' : 'eyJhbGciOiJIUzI1NiJ9...' ?>"
+                   autocomplete="new-password">
+            <button type="button" onclick="toggleVis(this.previousElementSibling)" style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8b8a93;font-size:.75rem;padding:.2rem .4rem">mostrar</button>
+          </div>
+          <div style="font-size:.74rem;color:#8b8a93;margin-top:.3rem">Obtido em <a href="https://app.z-api.io" target="_blank" style="color:#0ea5e9">app.z-api.io</a> &rsaquo; Partner &rsaquo; Tokens</div>
+        </div>
+        <div>
+          <label class="field-label">Client Token (default para novas instâncias)</label>
+          <div style="position:relative">
+            <input class="field-input" type="password" name="zapi_client"
+                   value="<?= $zapiClient ? '••••••••' : '' ?>"
+                   placeholder="<?= $zapiClient ? '(mantém o token atual)' : 'Fc79c27579b2f463b9973e219441ddd33S' ?>"
+                   autocomplete="new-password">
+            <button type="button" onclick="toggleVis(this.previousElementSibling)" style="position:absolute;right:.6rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#8b8a93;font-size:.75rem;padding:.2rem .4rem">mostrar</button>
+          </div>
+        </div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.7rem .85rem;font-size:.78rem;color:#92400e;line-height:1.5">
+          <strong>📱 Newton IA usa instâncias mobile</strong> (autônomas, sem espelho no celular do cliente). Crie no painel Z-API &rsaquo; Nova Instância &rsaquo; Mobile.
+        </div>
+      </div>
+      <div class="pcard-foot">
+        <button type="button" class="btn-test" onclick="testProvider('zapi', this)">Testar conexão</button>
+        <div id="test-result-zapi" style="font-size:.78rem;display:none"></div>
+        <button type="submit" class="btn-save">Salvar</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Asaas (pagamentos) -->
   <div class="pcard" style="margin-bottom:2rem">
     <div class="pcard-head">
@@ -203,10 +281,14 @@ async function testProvider(provider, btn) {
     result.style.display = 'inline';
     if (d.ok) {
       result.style.color = '#16a34a';
-      result.textContent = '✓ Conectado';
+      if (provider === 'zapi' && typeof d.instances !== 'undefined') {
+        result.textContent = `✓ ${d.instances} instância(s): ${d.web} web, ${d.mobile} mobile`;
+      } else {
+        result.textContent = '✓ Conectado';
+      }
     } else {
       result.style.color = '#dc2626';
-      result.textContent = '✗ Erro: sem API key ou inválida';
+      result.textContent = '✗ ' + (d.error || 'sem API key ou inválida');
     }
   } catch(e) {
     result.style.display = 'inline';

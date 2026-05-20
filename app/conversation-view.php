@@ -54,6 +54,12 @@ app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['conta
       };
       ?>
       <span style="font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:99px;background:<?= $statusCfg['bg'] ?>;color:<?= $statusCfg['color'] ?>"><?= $statusCfg['label'] ?></span>
+      <?php if ($conv['status'] !== 'closed'): ?>
+      <a href="inbox.php?id=<?= (int)$conv['id'] ?>" style="padding:.45rem .9rem;font-size:.78rem;background:#0ea5e9;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:.35rem">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/></svg>
+        Assumir conversa
+      </a>
+      <?php endif ?>
       <?php if ($conv['status'] === 'open'): ?>
       <form method="POST" style="display:inline">
         <?= csrf_field() ?>
@@ -70,14 +76,17 @@ app_layout('Conversa · '.htmlspecialchars($conv['contact_name'] ?: $conv['conta
     <div style="text-align:center;padding:2rem;color:#8b8a93;font-size:.875rem">Nenhuma mensagem ainda.</div>
     <?php else: ?>
     <?php foreach ($messages as $msg):
-      $isOut = $msg['direction'] === 'out';
-      $time  = date('d/m H:i', strtotime($msg['sent_at']));
+      $isOut    = $msg['direction'] === 'out';
+      $isHuman  = $isOut && !empty($msg['sent_by_human']);
+      $bg       = $isOut ? ($isHuman ? '#7c3aed' : '#0ea5e9') : '#fff';
+      $time     = date('d/m H:i', strtotime($msg['sent_at']));
+      $sender   = $isOut ? ($isHuman ? 'Humano' : 'Agente') : 'Contato';
     ?>
     <div style="display:flex;flex-direction:column;align-items:<?= $isOut ? 'flex-end' : 'flex-start' ?>">
-      <div style="max-width:72%;padding:.65rem .9rem;border-radius:<?= $isOut ? '12px 12px 2px 12px' : '12px 12px 12px 2px' ?>;background:<?= $isOut ? '#0ea5e9' : '#fff' ?>;color:<?= $isOut ? '#fff' : '#18181b' ?>;border:<?= $isOut ? 'none' : '1px solid #e7e5e0' ?>;font-size:.875rem;line-height:1.55;word-break:break-word">
+      <div style="max-width:72%;padding:.65rem .9rem;border-radius:<?= $isOut ? '12px 12px 2px 12px' : '12px 12px 12px 2px' ?>;background:<?= $bg ?>;color:<?= $isOut ? '#fff' : '#18181b' ?>;border:<?= $isOut ? 'none' : '1px solid #e7e5e0' ?>;font-size:.875rem;line-height:1.55;word-break:break-word">
         <?= nl2br(htmlspecialchars($msg['content'])) ?>
       </div>
-      <div style="font-size:.7rem;color:#8b8a93;margin-top:.2rem;padding:0 .3rem"><?= $time ?> &middot; <?= $isOut ? 'Agente' : 'Contato' ?></div>
+      <div style="font-size:.7rem;color:#8b8a93;margin-top:.2rem;padding:0 .3rem"><?= $time ?> &middot; <?= $sender ?></div>
     </div>
     <?php endforeach ?>
     <?php endif ?>
