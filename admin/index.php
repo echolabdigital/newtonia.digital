@@ -168,6 +168,12 @@ admin_layout('Dashboard · Newton IA', 'dashboard', function() use ($stats, $llm
             <div style="font-size:.75rem;color:#8b8a93"><?= htmlspecialchars($t['owner_email'] ?? '—') ?></div>
           </div>
           <span style="font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:99px;background:<?= $statusCfg['bg'] ?>;color:<?= $statusCfg['c'] ?>;flex-shrink:0"><?= $statusCfg['l'] ?></span>
+          <a href="impersonate.php?tenant_id=<?= (int)$t['id'] ?>" title="Entrar como super-admin neste workspace"
+             style="display:flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:600;padding:5px 10px;border-radius:7px;background:#eff6ff;color:#1d4ed8;text-decoration:none;border:1px solid #bfdbfe;flex-shrink:0;transition:all .15s"
+             onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            Entrar
+          </a>
         </div>
         <?php endforeach ?>
         <?php endif ?>

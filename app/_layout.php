@@ -390,13 +390,24 @@ $bottomItems = array_slice(
 <main class="main">
   <?php if ($isSuper): ?>
     <?php $imp = $_SESSION['impersonating'] ?? null; ?>
-    <div class="super-bar" style="<?= $imp ? 'background:#1e40af;' : '' ?>">
+    <div class="super-bar" style="<?= $imp ? 'background:#1e40af;' : 'background:#0a0a0f;' ?>;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem 1.2rem">
       <?php if ($imp): ?>
-        <span>👁 Impersonando: <strong><?= e($imp['tenant_name']) ?></strong> · Você continua como super-admin</span>
-        <a href="/admin/impersonate.php?exit=1" style="background:#fff;color:#1e40af;padding:3px 12px;border-radius:5px;font-weight:600;text-decoration:none">✕ Sair da conta</a>
+        <span style="display:inline-flex;align-items:center;gap:.45rem">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          Você está como <strong><?= e($imp['tenant_name']) ?></strong> · super-admin mantido
+        </span>
+        <a href="/admin/impersonate.php?exit=1" style="background:#fff;color:#1e40af;padding:4px 12px;border-radius:6px;font-weight:600;text-decoration:none;font-size:.75rem;display:inline-flex;align-items:center;gap:.3rem">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar pro Super Admin
+        </a>
       <?php else: ?>
-        <span>🔧 Você está visualizando como super-admin · Tenant: <strong><?= e($tenant['name']) ?></strong></span>
-        <a href="/admin/">← Voltar pro Super Admin</a>
+        <span style="display:inline-flex;align-items:center;gap:.45rem">
+          🔧 Você está como super-admin no workspace <strong><?= e($tenant['name']) ?></strong>
+        </span>
+        <a href="/admin/" style="background:rgba(255,255,255,.15);color:#fff;padding:4px 12px;border-radius:6px;font-weight:600;text-decoration:none;font-size:.75rem;display:inline-flex;align-items:center;gap:.3rem;border:1px solid rgba(255,255,255,.2)">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Voltar pro Super Admin
+        </a>
       <?php endif; ?>
     </div>
   <?php endif; ?>
