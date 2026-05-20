@@ -1,65 +1,193 @@
 <?php
 /**
- * SYNAPSE — Webhook Z-API
- * URL: /webhooks/zapi-synapse.php?channel=<id>&token=<webhook_token>
- * Configurar esta URL no painel Z-API > Webhooks > On Message Received
+ * Newton IA — Z-API webhook receiver
+ * URL: /webhooks/zapi-synapse.php?channel={id}&token={webhook_token}
+ *
+ * Configurar no painel Z-API (ou via zapi_set_webhooks()):
+ *   receive   → mensagem recebida
+ *   status    → delivery/read
+ *   connect   → instância conectou
+ *   disconnect → instância desconectou
  */
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../core/agent.php';
+require_once __DIR__ . '/../core/synapse.php';
+require_once __DIR__ . '/../core/zapi.php';
+require_once __DIR__ . '/../core/llm.php';
 
 header('Content-Type: application/json');
 
-// Validação básica
-$channelId = (int)($_GET['channel'] ?? 0);
-$token     = trim($_GET['token'] ?? '');
-if (!$channelId || !$token) { http_response_code(400); echo json_encode(['error'=>'invalid params']); exit; }
-
-// Lê payload
+// ── Lê payload ───────────────────────────────────────────────────────────────
 $raw  = file_get_contents('php://input');
-$data = json_decode($raw, true);
-if (!$data) { echo json_encode(['ok'=>true,'skip'=>'no json']); exit; }
+$data = json_decode($raw, true) ?? [];
 
-// Busca canal
-$channel = db_one('SELECT * FROM agent_channels WHERE id = ? AND webhook_token = ?', [$channelId, $token]);
-if (!$channel) { http_response_code(403); echo json_encode(['error'=>'channel not found']); exit; }
+// Evento via query string (configurado no zapi_set_webhooks) ou via payload type
+$event = $_GET['event'] ?? '';
+$type  = $data['type'] ?? '';
 
-// Ignora mensagens enviadas pelo próprio bot (direction out) e mensagens de grupo
-$isFromMe  = $data['fromMe'] ?? false;
-$isGroup   = isset($data['phone']) && str_contains((string)$data['phone'], '@g.us');
-if ($isFromMe || $isGroup) { echo json_encode(['ok'=>true,'skip'=>'fromMe or group']); exit; }
+// ── Valida canal ──────────────────────────────────────────────────────────────
+$channelId = (int) ($_GET['channel'] ?? 0);
+$urlToken  = trim($_GET['token'] ?? '');
 
-// Só processa tipo text por ora
-$type    = $data['type'] ?? '';
-$content = '';
-if ($type === 'ReceivedCallback') {
-    $content = $data['text']['message'] ?? ($data['body'] ?? '');
-} else {
-    $content = $data['text']['message'] ?? ($data['body'] ?? ($data['message'] ?? ''));
-}
-$content = trim($content);
-if (!$content) { echo json_encode(['ok'=>true,'skip'=>'empty content']); exit; }
-
-// Extrai telefone e nome
-$phone = preg_replace('/\D/', '', $data['phone'] ?? '');
-$name  = $data['senderName'] ?? ($data['pushname'] ?? '');
-if (!$phone) { echo json_encode(['ok'=>true,'skip'=>'no phone']); exit; }
-
-// Busca agente
-$agent = db_one('SELECT * FROM agents WHERE id = ? AND status = "active"', [(int)$channel['agent_id']]);
-if (!$agent) { echo json_encode(['ok'=>true,'skip'=>'agent inactive or not found']); exit; }
-
-$tenantId = (int)$channel['tenant_id'];
-
-// Busca ou cria conversa
-$conv = synapse_get_or_create_conversation((int)$agent['id'], $tenantId, $channelId, $phone, $name);
-
-// Bot pausado — humano está no controle
-if (($conv['status'] ?? '') === 'paused') {
-    synapse_save_message((int)$conv['id'], 'in', $content);
-    db_q('UPDATE conversations SET last_message_at = NOW(), message_count = message_count + 1 WHERE id = ?', [(int)$conv['id']]);
-    echo json_encode(['ok'=>true,'skip'=>'paused_human_takeover']); exit;
+if (!$channelId || !$urlToken) {
+    http_response_code(400);
+    echo json_encode(['error' => 'missing channel/token']);
+    exit;
 }
 
-// Processa e responde
-$reply = synapse_process($agent, $conv, $content, $channel);
+$channel = db_one('SELECT * FROM agent_channels WHERE id = ? AND webhook_token = ?', [$channelId, $urlToken]);
+if (!$channel) {
+    http_response_code(401);
+    echo json_encode(['error' => 'invalid token']);
+    exit;
+}
 
-echo json_encode(['ok' => true, 'replied' => !empty($reply), 'length' => strlen($reply ?? '')]);
+$agentId  = (int) $channel['agent_id'];
+$tenantId = (int) $channel['tenant_id'];
+
+// ── Conectou ─────────────────────────────────────────────────────────────────
+if ($event === 'connect' || $type === 'ConnectedCallback') {
+    $phone = $data['phone'] ?? null;
+    agent_channel_set_status($channelId, 'connected', $phone);
+    error_log("[newton/zapi] channel={$channelId} CONNECTED phone={$phone}");
+    echo json_encode(['ok' => true, 'event' => 'connect']);
+    exit;
+}
+
+// ── Desconectou ───────────────────────────────────────────────────────────────
+if ($event === 'disconnect' || $type === 'DisconnectedCallback') {
+    agent_channel_set_status($channelId, 'disconnected');
+    error_log("[newton/zapi] channel={$channelId} DISCONNECTED");
+    echo json_encode(['ok' => true, 'event' => 'disconnect']);
+    exit;
+}
+
+// ── Status de entrega/leitura ─────────────────────────────────────────────────
+if ($event === 'status' || $type === 'MessageStatusCallback') {
+    $msgId  = $data['messageId'] ?? '';
+    $status = strtolower($data['status'] ?? '');
+    if ($msgId && $status) {
+        db_q('UPDATE messages SET status = ? WHERE zapi_msg_id = ?', [$status, $msgId]);
+    }
+    echo json_encode(['ok' => true, 'event' => 'status']);
+    exit;
+}
+
+// ── Mensagem recebida ─────────────────────────────────────────────────────────
+if ($event !== 'receive' && $type !== 'ReceivedCallback') {
+    echo json_encode(['ok' => true, 'skip' => 'unknown_event', 'type' => $type]);
+    exit;
+}
+
+// Filtra mensagens enviadas pelo próprio agente
+if (!empty($data['fromMe'])) {
+    echo json_encode(['ok' => true, 'skip' => 'fromMe']);
+    exit;
+}
+
+// Filtra grupos
+$rawPhone = (string) ($data['phone'] ?? '');
+if (str_contains($rawPhone, '@g.us') || str_contains($rawPhone, '-')) {
+    echo json_encode(['ok' => true, 'skip' => 'group']);
+    exit;
+}
+
+// Extrai texto (texto puro, ou caption de mídia)
+$inbound = trim(
+    $data['text']['message']
+    ?? $data['image']['caption']
+    ?? $data['video']['caption']
+    ?? $data['document']['caption']
+    ?? $data['body']
+    ?? ''
+);
+
+if ($inbound === '') {
+    echo json_encode(['ok' => true, 'skip' => 'empty_text']);
+    exit;
+}
+
+$senderName = trim($data['senderName'] ?? $data['pushname'] ?? '');
+$zapiMsgId  = $data['messageId'] ?? null;
+$phone      = _zapi_normalize_phone(preg_replace('/\D/', '', $rawPhone));
+
+if (!$phone) {
+    echo json_encode(['ok' => true, 'skip' => 'no_phone']);
+    exit;
+}
+
+// ── Busca agente ativo ────────────────────────────────────────────────────────
+$agent = db_one(
+    'SELECT * FROM agents WHERE id = ? AND tenant_id = ? AND status = "active" LIMIT 1',
+    [$agentId, $tenantId]
+);
+if (!$agent) {
+    error_log("[newton/zapi] agent={$agentId} not found or inactive");
+    echo json_encode(['ok' => true, 'skip' => 'agent_inactive']);
+    exit;
+}
+
+// ── Conversa ──────────────────────────────────────────────────────────────────
+$conv = synapse_get_or_create_conversation($agentId, $tenantId, $channelId, $phone, $senderName);
+
+// Handoff humano — salva mensagem mas não responde
+if (in_array($conv['status'] ?? '', ['paused', 'human'])) {
+    synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+    echo json_encode(['ok' => true, 'skip' => 'human_handoff']);
+    exit;
+}
+
+// Salva mensagem recebida
+synapse_save_message((int)$conv['id'], 'in', $inbound, 'text', $zapiMsgId);
+
+// ── Anti-ban: delay de digitação proporcional ─────────────────────────────────
+$typingDelay = min(4, max(1, (int)(strlen($inbound) / 50)));
+sleep($typingDelay);
+
+// ── LLM ───────────────────────────────────────────────────────────────────────
+$limit    = max(6, (int)($agent['context_window'] ?? 20));
+$history  = synapse_get_history((int)$conv['id'], $limit);
+$messages = [['role' => 'system', 'content' => synapse_build_system(
+    $agent,
+    array_merge($conv, ['contact_name' => $senderName ?: $phone])
+)]];
+foreach ($history as $row) {
+    $messages[] = ['role' => $row['direction'] === 'in' ? 'user' : 'assistant', 'content' => $row['content']];
+}
+
+$provider = $agent['provider'] ?: llm_provider_from_model($agent['model'] ?: '');
+$response = llm_chat($provider, $agent['model'] ?: 'llama-3.3-70b-versatile', $messages);
+
+if (!$response) {
+    error_log("[newton/zapi] llm null — agent={$agentId} conv={$conv['id']}");
+    echo json_encode(['ok' => false, 'error' => 'llm_null']);
+    exit;
+}
+
+$response = trim($response);
+
+// ── Salva e envia ─────────────────────────────────────────────────────────────
+synapse_save_message((int)$conv['id'], 'out', $response, 'text');
+
+$cfg  = json_decode($channel['config_json'] ?? '{}', true);
+$sent = zapi_send_text(
+    $cfg['instance']     ?? '',
+    $cfg['token']        ?? '',
+    $cfg['client_token'] ?? '',
+    $phone,
+    $response
+);
+
+if (!$sent) {
+    error_log("[newton/zapi] send_text FAILED — channel={$channelId} phone={$phone}");
+}
+
+echo json_encode(['ok' => true, 'sent' => $sent, 'conv' => $conv['id'], 'chars' => strlen($response)]);
+
+// ── Normaliza telefone BR ─────────────────────────────────────────────────────
+function _zapi_normalize_phone(string $p): string {
+    if (strlen($p) === 13 && str_starts_with($p, '55')) $p = substr($p, 2);
+    if (strlen($p) === 10) $p = substr($p, 0, 2) . '9' . substr($p, 2);
+    if (strlen($p) === 11) $p = '55' . $p;
+    return $p;
+}
