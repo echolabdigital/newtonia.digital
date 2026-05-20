@@ -55,16 +55,34 @@ function agent_channel_get(int $agentId): ?array {
 function agent_channel_save(int $agentId, int $tenantId, array $cfg): int {
     $existing = agent_channel_get($agentId);
     $token    = $existing['webhook_token'] ?? bin2hex(random_bytes(20));
-    $cfgJson  = json_encode($cfg, JSON_UNESCAPED_UNICODE);
+
+    // Preserva middleware do existing se não informado
+    if (!isset($cfg['middleware']) && $existing) {
+        $existingCfg = json_decode($existing['config_json'] ?? '{}', true);
+        $cfg['middleware'] = $existingCfg['middleware'] ?? 'mobile';
+    } elseif (!isset($cfg['middleware'])) {
+        $cfg['middleware'] = 'mobile'; // Newton IA default = autônomo
+    }
+
+    $cfgJson = json_encode($cfg, JSON_UNESCAPED_UNICODE);
 
     if ($existing) {
-        db_q('UPDATE agent_channels SET config_json = ?, webhook_token = ?, status = "disconnected", updated_at = NOW() WHERE id = ?',
+        db_q('UPDATE agent_channels SET config_json = ?, webhook_token = ?, updated_at = NOW() WHERE id = ?',
             [$cfgJson, $token, (int)$existing['id']]);
-        return (int)$existing['id'];
+        $channelId = (int)$existing['id'];
+    } else {
+        db_q('INSERT INTO agent_channels (agent_id, tenant_id, channel_type, config_json, webhook_token) VALUES (?, ?, "whatsapp_zapi", ?, ?)',
+            [$agentId, $tenantId, $cfgJson, $token]);
+        $channelId = (int) db()->lastInsertId();
     }
-    db_q('INSERT INTO agent_channels (agent_id, tenant_id, channel_type, config_json, webhook_token) VALUES (?, ?, "whatsapp_zapi", ?, ?)',
-        [$agentId, $tenantId, $cfgJson, $token]);
-    return (int) db()->lastInsertId();
+
+    // Auto-configura webhooks no Z-API (best-effort)
+    if (!empty($cfg['instance']) && !empty($cfg['token']) && !empty($cfg['client_token']) && function_exists('zapi_set_webhooks')) {
+        $base = rtrim(APP_URL, '/') . '/webhooks/zapi-synapse.php?channel=' . $channelId . '&token=' . $token;
+        @zapi_set_webhooks($cfg['instance'], $cfg['token'], $cfg['client_token'], $base);
+    }
+
+    return $channelId;
 }
 
 function agent_channel_set_status(int $channelId, string $status, ?string $phone = null): void {

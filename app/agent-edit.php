@@ -35,14 +35,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['_action'] ?? '') !== 'dele
             $agent = agent_get($id, $tid);
             audit_log('agent.updated','agent',$id);
         }
-        $zapiInstance = trim($_POST['zapi_instance'] ?? '');
-        $zapiToken    = trim($_POST['zapi_token'] ?? '');
-        $zapiClient   = trim($_POST['zapi_client'] ?? '');
+        $zapiInstance   = trim($_POST['zapi_instance'] ?? '');
+        $zapiToken      = trim($_POST['zapi_token'] ?? '');
+        $zapiClient     = trim($_POST['zapi_client'] ?? '');
+        $zapiMiddleware = in_array($_POST['zapi_middleware'] ?? '', ['web','mobile']) ? $_POST['zapi_middleware'] : 'mobile';
         if ($zapiInstance && $zapiToken && $zapiClient) {
             agent_channel_save($id, $tid, [
                 'instance'     => $zapiInstance,
                 'token'        => $zapiToken,
                 'client_token' => $zapiClient,
+                'middleware'   => $zapiMiddleware,
             ]);
         }
         // Widget settings
@@ -276,11 +278,42 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
         <?php endif ?>
       </div>
       <div class="ae-body">
+        <?php $curMw = $chCfg['middleware'] ?? 'mobile'; ?>
         <?php if ($channel && $channel['status']==='connected'): ?>
-        <div style="padding:.7rem 1rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;font-size:.85rem;color:#16a34a">
+        <div style="padding:.7rem 1rem;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;font-size:.85rem;color:#16a34a;display:flex;align-items:center;gap:.5rem">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
           Numero conectado: <strong><?= htmlspecialchars($channel['connected_phone']??'—') ?></strong>
+          <span style="margin-left:auto;font-family:'Geist Mono',monospace;font-size:.66rem;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase"><?= $curMw === 'mobile' ? 'Mobile · Autonomo' : 'Web · Manual' ?></span>
         </div>
         <?php endif ?>
+
+        <!-- Toggle modo Mobile vs Web -->
+        <div>
+          <label class="ae-label">Modo de operacao</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">
+            <label style="cursor:pointer">
+              <input type="radio" name="zapi_middleware" value="mobile" <?= $curMw==='mobile'?'checked':'' ?> onchange="toggleZapiMode()" style="display:none">
+              <div class="ae-mw-card <?= $curMw==='mobile'?'on':'' ?>" data-mw="mobile" style="padding:.85rem 1rem;border:1.5px solid <?= $curMw==='mobile'?'#0ea5e9':'#e7e5e0' ?>;background:<?= $curMw==='mobile'?'#f0f9ff':'#fff' ?>;border-radius:10px;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+                  <span style="font-size:1.1rem">📱</span>
+                  <strong style="font-size:.86rem;color:#18181b">Mobile · SMS</strong>
+                </div>
+                <div style="font-size:.74rem;color:#64748b;line-height:1.4">Agente autonomo 24/7. Numero dedicado, sem espelho no celular.</div>
+              </div>
+            </label>
+            <label style="cursor:pointer">
+              <input type="radio" name="zapi_middleware" value="web" <?= $curMw==='web'?'checked':'' ?> onchange="toggleZapiMode()" style="display:none">
+              <div class="ae-mw-card <?= $curMw==='web'?'on':'' ?>" data-mw="web" style="padding:.85rem 1rem;border:1.5px solid <?= $curMw==='web'?'#0ea5e9':'#e7e5e0' ?>;background:<?= $curMw==='web'?'#f0f9ff':'#fff' ?>;border-radius:10px;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.2rem">
+                  <span style="font-size:1.1rem">💻</span>
+                  <strong style="font-size:.86rem;color:#18181b">Web · QR Code</strong>
+                </div>
+                <div style="font-size:.74rem;color:#64748b;line-height:1.4">Espelha o WhatsApp do celular. Bom pra atendimento humano + IA.</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
           <div>
             <label class="ae-label">Instance ID</label>
@@ -297,8 +330,8 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
         </div>
         <?php if ($webhookUrl): ?>
         <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:.85rem 1rem">
-          <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.08em">Webhook URL — configure no painel Z-API</div>
-          <div class="ae-mono" style="font-size:.78rem;color:#18181b;word-break:break-all"><?= htmlspecialchars($webhookUrl) ?></div>
+          <div style="font-size:.72rem;font-weight:700;color:#64748b;margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.08em">Webhook URL · auto-configurado ao salvar</div>
+          <div class="ae-mono" style="font-size:.74rem;color:#18181b;word-break:break-all"><?= htmlspecialchars($webhookUrl) ?></div>
         </div>
         <?php endif ?>
         <div style="display:flex;justify-content:flex-end">
@@ -309,17 +342,72 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
   </form>
 
   <?php if ($channel && $chCfg && ($channel['status']??'') !== 'connected'): ?>
-  <div class="ae-card" style="margin-bottom:1.5rem">
-    <div class="ae-head"><h2 style="margin:0;font-size:1rem;font-weight:600;color:#18181b">Conectar via QR Code</h2></div>
-    <div style="padding:1.5rem;text-align:center">
-      <button onclick="loadQR()" style="padding:.65rem 1.3rem;background:#f0f9ff;color:#0ea5e9;border:1px solid #bae6fd;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer">Gerar QR Code</button>
-      <div id="qrImg" style="margin-top:1rem;display:none">
-        <img id="qrSrc" src="" alt="QR" style="max-width:240px;border-radius:8px;border:1px solid #e7e5e0">
-        <p style="font-size:.82rem;color:#8b8a93;margin:.75rem 0 .3rem">WhatsApp > Aparelhos Conectados > Conectar aparelho</p>
-        <button onclick="loadQR()" style="font-size:.8rem;color:#0ea5e9;background:none;border:none;cursor:pointer;text-decoration:underline">Atualizar QR</button>
+    <?php if (($chCfg['middleware'] ?? 'mobile') === 'mobile'): ?>
+    <!-- ── Mobile / SMS Flow ────────────────────────────────────────────────── -->
+    <div class="ae-card" style="margin-bottom:1.5rem">
+      <div class="ae-head" style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div class="ae-tag">CONEXAO &middot; MOBILE</div>
+          <h2 style="margin:0;font-size:1.05rem;font-weight:600;color:#18181b">Conectar via SMS</h2>
+        </div>
+        <span style="font-size:.66rem;font-family:'Geist Mono',monospace;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:4px;font-weight:600;letter-spacing:.04em;text-transform:uppercase">Newton IA · Autonomo</span>
+      </div>
+      <div class="ae-body">
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:.85rem 1rem;font-size:.82rem;color:#92400e;line-height:1.55">
+          <strong>⚠ Antes de continuar:</strong> a instancia precisa ser <strong>mobile</strong> no painel Z-API. Crie em <a href="https://app.z-api.io" target="_blank" style="color:#92400e;text-decoration:underline">app.z-api.io</a> &rsaquo; <em>Nova instancia</em> &rsaquo; <em>Mobile</em>. Cole as credenciais acima e salve. So depois siga o fluxo abaixo.
+        </div>
+
+        <!-- Step 1: phone -->
+        <div id="mobileStep1">
+          <label class="ae-label">Numero do agente (DDD + numero)</label>
+          <div style="display:flex;gap:.5rem">
+            <input id="mobilePhone" class="ae-input ae-mono" type="text" placeholder="11999999999" maxlength="15" style="flex:1;font-size:.95rem;letter-spacing:.02em">
+            <select id="mobileMethod" class="ae-input" style="background:#fff;width:120px">
+              <option value="sms">SMS</option>
+              <option value="voice">Ligacao</option>
+              <option value="wa_old">WhatsApp antigo</option>
+            </select>
+          </div>
+          <div style="font-size:.75rem;color:#8b8a93;margin-top:.3rem">Codigo do pais (55) sera adicionado automaticamente. Use o numero que sera dedicado ao agente.</div>
+          <div style="margin-top:1rem;display:flex;gap:.5rem;align-items:center">
+            <button type="button" onclick="mobileRequestCode()" id="mobileRequestBtn" class="ae-btn-primary">
+              Solicitar codigo
+            </button>
+            <span id="mobileWait" style="font-size:.8rem;color:#8b8a93;display:none"></span>
+          </div>
+        </div>
+
+        <!-- Step 2: confirm code -->
+        <div id="mobileStep2" style="display:none;border-top:1px solid #f4f2ed;padding-top:1.1rem">
+          <label class="ae-label">Codigo recebido (6 digitos)</label>
+          <input id="mobileCode" class="ae-input ae-mono" type="text" placeholder="000000" maxlength="6" style="font-size:1.4rem;text-align:center;letter-spacing:.4em;font-weight:600">
+          <div style="margin-top:1rem;display:flex;gap:.5rem;align-items:center;justify-content:space-between">
+            <button type="button" onclick="mobileBackStep1()" class="ae-btn-ghost">&larr; Voltar</button>
+            <button type="button" onclick="mobileConfirmCode()" id="mobileConfirmBtn" class="ae-btn-primary">
+              Confirmar codigo
+            </button>
+          </div>
+        </div>
+
+        <!-- Status messages -->
+        <div id="mobileMsg" style="display:none;padding:.7rem 1rem;border-radius:8px;font-size:.85rem"></div>
       </div>
     </div>
-  </div>
+
+    <?php else: ?>
+    <!-- ── Web / QR Flow ────────────────────────────────────────────────────── -->
+    <div class="ae-card" style="margin-bottom:1.5rem">
+      <div class="ae-head"><h2 style="margin:0;font-size:1rem;font-weight:600;color:#18181b">Conectar via QR Code</h2></div>
+      <div style="padding:1.5rem;text-align:center">
+        <button onclick="loadQR()" style="padding:.65rem 1.3rem;background:#f0f9ff;color:#0ea5e9;border:1px solid #bae6fd;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer">Gerar QR Code</button>
+        <div id="qrImg" style="margin-top:1rem;display:none">
+          <img id="qrSrc" src="" alt="QR" style="max-width:240px;border-radius:8px;border:1px solid #e7e5e0">
+          <p style="font-size:.82rem;color:#8b8a93;margin:.75rem 0 .3rem">WhatsApp &rsaquo; Aparelhos Conectados &rsaquo; Conectar aparelho</p>
+          <button onclick="loadQR()" style="font-size:.8rem;color:#0ea5e9;background:none;border:none;cursor:pointer;text-decoration:underline">Atualizar QR</button>
+        </div>
+      </div>
+    </div>
+    <?php endif ?>
   <?php endif ?>
 
   <div style="display:flex;gap:.75rem;margin-bottom:1.5rem">
@@ -363,6 +451,104 @@ function loadQR(){
       if(d.qr){document.getElementById('qrSrc').src='data:image/png;base64,'+d.qr;document.getElementById('qrImg').style.display='block';}
       else alert('Erro ao gerar QR. Verifique as credenciais Z-API.');
     });
+}
+
+// ── Toggle Mobile/Web visual ──────────────────────────────────────────────
+function toggleZapiMode(){
+  var sel = document.querySelector('input[name=zapi_middleware]:checked');
+  if(!sel) return;
+  document.querySelectorAll('.ae-mw-card').forEach(function(card){
+    var on = card.dataset.mw === sel.value;
+    card.classList.toggle('on', on);
+    card.style.borderColor = on ? '#0ea5e9' : '#e7e5e0';
+    card.style.background  = on ? '#f0f9ff' : '#fff';
+  });
+}
+
+// ── Mobile (SMS) connection flow ──────────────────────────────────────────
+var _channelId = <?= (int)$channel['id'] ?>;
+
+function _mobileMsg(type, text){
+  var box = document.getElementById('mobileMsg');
+  if(!box) return;
+  box.style.display = 'block';
+  var colors = {
+    ok:    ['#f0fdf4','#16a34a','#bbf7d0'],
+    err:   ['#fef2f2','#dc2626','#fecaca'],
+    info:  ['#f0f9ff','#0284c7','#bae6fd'],
+  }[type] || ['#f8fafc','#64748b','#e7e5e0'];
+  box.style.background = colors[0];
+  box.style.color      = colors[1];
+  box.style.border     = '1px solid ' + colors[2];
+  box.textContent      = text;
+}
+
+async function mobileRequestCode(){
+  var phone  = document.getElementById('mobilePhone').value.replace(/\D/g,'');
+  var method = document.getElementById('mobileMethod').value;
+  var btn    = document.getElementById('mobileRequestBtn');
+  if(phone.length < 10){ _mobileMsg('err','Numero invalido. Use DDD + numero.'); return; }
+  btn.disabled = true; btn.textContent = 'Solicitando...';
+  _mobileMsg('info','Z-API enviando codigo via ' + method.toUpperCase() + '...');
+  try {
+    var fd = new FormData();
+    fd.append('_csrf', <?= json_encode(csrf_token()) ?>);
+    fd.append('channel_id', _channelId);
+    fd.append('phone',  phone);
+    fd.append('method', method);
+    var r = await fetch('/app/agent-mobile-request.php', { method:'POST', body:fd }).then(r=>r.json());
+    if(r.ok){
+      _mobileMsg('ok','Codigo enviado! Aguarde a chegada e confirme abaixo.');
+      document.getElementById('mobileStep1').style.display = 'none';
+      document.getElementById('mobileStep2').style.display = 'block';
+      document.getElementById('mobileCode').focus();
+      if(r.retryAfter){
+        document.getElementById('mobileWait').style.display = 'inline';
+        var t = parseInt(r.retryAfter);
+        var tick = setInterval(function(){
+          t--;
+          if(t<=0){ clearInterval(tick); document.getElementById('mobileWait').style.display='none'; }
+          else document.getElementById('mobileWait').textContent = 'Aguarde ' + t + 's pra reenviar';
+        }, 1000);
+      }
+    } else {
+      _mobileMsg('err', r.error || 'Erro ao solicitar codigo.');
+    }
+  } catch(e){ _mobileMsg('err','Erro de conexao: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='Solicitar codigo'; }
+}
+
+function mobileBackStep1(){
+  document.getElementById('mobileStep1').style.display = 'block';
+  document.getElementById('mobileStep2').style.display = 'none';
+  document.getElementById('mobileMsg').style.display = 'none';
+}
+
+async function mobileConfirmCode(){
+  var code = document.getElementById('mobileCode').value.replace(/\D/g,'');
+  var btn  = document.getElementById('mobileConfirmBtn');
+  if(code.length !== 6){ _mobileMsg('err','Codigo deve ter 6 digitos.'); return; }
+  btn.disabled = true; btn.textContent = 'Confirmando...';
+  _mobileMsg('info','Confirmando codigo...');
+  try {
+    var fd = new FormData();
+    fd.append('_csrf', <?= json_encode(csrf_token()) ?>);
+    fd.append('channel_id', _channelId);
+    fd.append('code', code);
+    var r = await fetch('/app/agent-mobile-confirm.php', { method:'POST', body:fd }).then(r=>r.json());
+    if(r.ok){
+      _mobileMsg('ok','✓ Conectado! Recarregando...');
+      setTimeout(function(){ location.reload(); }, 1500);
+    } else if (r.confirmSecurityCode) {
+      _mobileMsg('err','Codigo de seguranca/PIN exigido. Verifique no celular do numero.');
+    } else if (r.deviceConfirm) {
+      _mobileMsg('info','Aguardando confirmacao em outro aparelho. Verifique o celular.');
+      setTimeout(function(){ location.reload(); }, 8000);
+    } else {
+      _mobileMsg('err', r.error || 'Codigo invalido ou expirado.');
+    }
+  } catch(e){ _mobileMsg('err','Erro de conexao: '+e.message); }
+  finally { btn.disabled=false; btn.textContent='Confirmar codigo'; }
 }
 <?php endif ?>
 

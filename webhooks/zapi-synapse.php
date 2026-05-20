@@ -183,11 +183,3 @@ if (!$sent) {
 }
 
 echo json_encode(['ok' => true, 'sent' => $sent, 'conv' => $conv['id'], 'chars' => strlen($response)]);
-
-// ── Normaliza telefone BR ─────────────────────────────────────────────────────
-function _zapi_normalize_phone(string $p): string {
-    if (strlen($p) === 13 && str_starts_with($p, '55')) $p = substr($p, 2);
-    if (strlen($p) === 10) $p = substr($p, 0, 2) . '9' . substr($p, 2);
-    if (strlen($p) === 11) $p = '55' . $p;
-    return $p;
-}
