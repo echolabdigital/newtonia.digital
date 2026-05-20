@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Logout
+ * Newton IA — Logout
  * Limpa a sessão e redireciona pra login.
  */
 require_once __DIR__ . '/config.php';

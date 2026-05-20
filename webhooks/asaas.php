@@ -1,7 +1,7 @@
 <?php
 /**
- * HERMES.b2b — Webhook receiver Asaas
- * URL pública: https://hermesb2b.co/webhooks/asaas.php
+ * Newton IA — Webhook receiver Asaas
+ * URL pública: https://newtonia.digital/webhooks/asaas.php
  *
  * Fluxo:
  *  1. Asaas POST com JSON do evento

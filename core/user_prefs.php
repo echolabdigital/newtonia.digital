@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Preferências por usuário
+ * Newton IA — Preferências por usuário
  * Tabela key-value simples. Cada pref é salva individualmente.
  */
 

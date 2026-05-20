@@ -94,7 +94,7 @@ admin_layout('Dashboard · Newton IA', 'dashboard', function() use ($stats, $llm
       <div class="stat-val"><?= $stats['agents'] ?></div>
       <div class="stat-sub"><?= $stats['agents_active'] ?> ativos</div>
     </div>
-    <div class="stat-card" style="--accent:#10b981">
+    <div class="stat-card" style="--accent:#0ea5e9">
       <div class="stat-label">Conversas</div>
       <div class="stat-val"><?= number_format($stats['conversations']) ?></div>
       <div class="stat-sub"><?= $stats['conv_open'] ?> abertas</div>

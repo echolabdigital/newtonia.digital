@@ -1,13 +1,13 @@
 <?php
 /**
- * HERMES.b2b — Cron: gerenciar ciclo de vida dos trials
+ * Newton IA — Cron: gerenciar ciclo de vida dos trials
  *
  * Executa 1× ao dia e faz duas passagens:
  *   1. Aviso: tenants que expiram em ~24h → e-mail de alerta
  *   2. Expirar: tenants com trial vencido sem pagamento → suspende + e-mail
  *
  * Crontab (06:00 UTC = 03:00 BRT):
- *   0 6 * * * php /home/hermesb2b.co/app.hermesb2b.co/public_html/cron/expire-trials.php >> /var/log/hermes-cron.log 2>&1
+ *   0 6 * * * php /home/newtonia.digital/app.newtonia.digital/public_html/cron/expire-trials.php >> /var/log/hermes-cron.log 2>&1
  */
 
 if (php_sapi_name() !== 'cli' && ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1') {

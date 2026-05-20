@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Política de Privacidade (LGPD)
+ * Newton IA — Política de Privacidade (LGPD)
  */
 $_is_logged = false;
 if (file_exists(__DIR__ . '/config.php')) {
@@ -14,14 +14,14 @@ $last_updated = '17 de maio de 2026';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Política de Privacidade — HERMES.b2b</title>
+<title>Política de Privacidade — Newton IA</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --hermes:#10b981; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
+  :root { --newton:#0ea5e9; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
   body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
   .top-bar { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
   .brand { display: flex; align-items: center; gap: 9px; text-decoration: none; color: inherit; }
@@ -88,7 +88,7 @@ $last_updated = '17 de maio de 2026';
   <div class="page-header">
     <div class="mono">// legal · LGPD</div>
     <h1>Política de Privacidade</h1>
-    <div class="meta">Última atualização: <?= $last_updated ?> · HERMES.b2b by echo_lab</div>
+    <div class="meta">Última atualização: <?= $last_updated ?> · Newton IA by echo_lab</div>
   </div>
 
   <div class="highlight-box">
@@ -113,11 +113,11 @@ $last_updated = '17 de maio de 2026';
 
   <div id="controlador" class="doc-section">
     <h2>// 1. Controlador dos Dados</h2>
-    <p>O controlador responsável pelo tratamento de dados pessoais é a <strong>echo_lab</strong>, operadora do HERMES.b2b.</p>
+    <p>O controlador responsável pelo tratamento de dados pessoais é a <strong>echo_lab</strong>, operadora do Newton IA.</p>
     <div class="highlight-box">
-      <strong>echo_lab — HERMES.b2b</strong><br>
-      E-mail para assuntos de privacidade: <a href="mailto:privacidade@hermesb2b.co">privacidade@hermesb2b.co</a><br>
-      Site: <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a>
+      <strong>echo_lab — Newton IA</strong><br>
+      E-mail para assuntos de privacidade: <a href="mailto:privacidade@newtonia.digital">privacidade@newtonia.digital</a><br>
+      Site: <a href="https://newtonia.digital" target="_blank">newtonia.digital</a>
     </div>
   </div>
 
@@ -219,7 +219,7 @@ $last_updated = '17 de maio de 2026';
       <li><strong>Dados fiscais e financeiros</strong> — 5 anos (obrigação legal — Código Tributário Nacional)</li>
       <li><strong>Logs de segurança</strong> — 90 dias</li>
     </ul>
-    <p>Para solicitar a exclusão antecipada dos seus dados, envie e-mail para <a href="mailto:privacidade@hermesb2b.co">privacidade@hermesb2b.co</a> com assunto "Exclusão de dados — [seu e-mail]". Atendemos em até 15 dias úteis.</p>
+    <p>Para solicitar a exclusão antecipada dos seus dados, envie e-mail para <a href="mailto:privacidade@newtonia.digital">privacidade@newtonia.digital</a> com assunto "Exclusão de dados — [seu e-mail]". Atendemos em até 15 dias úteis.</p>
   </div>
 
   <div id="seguranca" class="doc-section">
@@ -280,22 +280,22 @@ $last_updated = '17 de maio de 2026';
         <p>Saber com quais entidades compartilhamos seus dados.</p>
       </div>
     </div>
-    <p>Para exercer qualquer um desses direitos, envie e-mail para <a href="mailto:privacidade@hermesb2b.co">privacidade@hermesb2b.co</a>. Respondemos em até <strong>15 dias úteis</strong>.</p>
+    <p>Para exercer qualquer um desses direitos, envie e-mail para <a href="mailto:privacidade@newtonia.digital">privacidade@newtonia.digital</a>. Respondemos em até <strong>15 dias úteis</strong>.</p>
   </div>
 
   <div id="dpo" class="doc-section">
     <h2>// 9. Encarregado de Dados (DPO)</h2>
     <p>O encarregado pelo tratamento de dados pessoais (DPO) da echo_lab pode ser contatado em:</p>
     <div class="highlight-box">
-      <strong>DPO — echo_lab / HERMES.b2b</strong><br>
-      E-mail: <a href="mailto:privacidade@hermesb2b.co">privacidade@hermesb2b.co</a>
+      <strong>DPO — echo_lab / Newton IA</strong><br>
+      E-mail: <a href="mailto:privacidade@newtonia.digital">privacidade@newtonia.digital</a>
     </div>
   </div>
 
   <div id="alteracoes" class="doc-section">
     <h2>// 10. Alterações nesta Política</h2>
     <p>Esta Política pode ser atualizada periodicamente. Alterações relevantes serão comunicadas por e-mail com antecedência mínima de <strong>15 dias</strong>. A data de "última atualização" no topo do documento indica a versão vigente.</p>
-    <p>Recomendamos a revisão periódica desta página. Dúvidas? Escreva para <a href="mailto:privacidade@hermesb2b.co">privacidade@hermesb2b.co</a>.</p>
+    <p>Recomendamos a revisão periódica desta página. Dúvidas? Escreva para <a href="mailto:privacidade@newtonia.digital">privacidade@newtonia.digital</a>.</p>
   </div>
 
 </div>
@@ -304,7 +304,7 @@ $last_updated = '17 de maio de 2026';
   <a href="/terms.php">Termos de Uso</a>
   <a href="/privacy.php">Privacidade</a>
   <a href="/login.php">Login</a>
-  <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a>
+  <a href="https://newtonia.digital" target="_blank">newtonia.digital</a>
   <span>· by echo_lab · <?= date('Y') ?></span>
 </div>
 

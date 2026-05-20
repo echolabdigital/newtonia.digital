@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Billing core
+ * Newton IA — Billing core
  * Camada que conecta tenants ↔ Asaas (customer, subscription, payment, lead packs).
  */
 
@@ -182,7 +182,7 @@ function billing_create_subscription(int $tenantId, int $planId, string $billing
         'value'       => $value,
         'nextDueDate' => $nextDue,
         'cycle'       => $cycle,
-        'description' => 'HERMES.b2b — ' . $plan['name'] . ' (' . ($cycle === 'YEARLY' ? 'anual' : 'mensal') . ')',
+        'description' => 'Newton IA — ' . $plan['name'] . ' (' . ($cycle === 'YEARLY' ? 'anual' : 'mensal') . ')',
         'externalReference' => 'tenant_' . $tenantId . '_plan_' . $planId,
     ];
 
@@ -256,7 +256,7 @@ function billing_create_lead_pack_charge(int $tenantId, string $packCode, string
         'billingType' => $billingType,
         'value'       => $pack['price_cents'] / 100,
         'dueDate'     => date('Y-m-d', strtotime('+1 day')),
-        'description' => 'HERMES.b2b — Lead Pack ' . number_format($pack['leads'], 0, '.', '.') . ' leads',
+        'description' => 'Newton IA — Lead Pack ' . number_format($pack['leads'], 0, '.', '.') . ' leads',
         'externalReference' => 'tenant_' . $tenantId . '_pack_' . $packCode,
     ];
 

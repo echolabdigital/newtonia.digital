@@ -1,6 +1,6 @@
 <?php
 /**
- * HERMES.b2b — Termos de Uso
+ * Newton IA — Termos de Uso
  */
 $_is_logged = false;
 if (file_exists(__DIR__ . '/config.php')) {
@@ -14,14 +14,14 @@ $last_updated = '17 de maio de 2026';
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Termos de Uso — HERMES.b2b</title>
+<title>Termos de Uso — Newton IA</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --hermes:#10b981; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
+  :root { --newton:#0ea5e9; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
   body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
 
   .top-bar { background: #fff; border-bottom: 1px solid var(--line); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
@@ -85,7 +85,7 @@ $last_updated = '17 de maio de 2026';
   <div class="page-header">
     <div class="mono">// legal</div>
     <h1>Termos de Uso</h1>
-    <div class="meta">Última atualização: <?= $last_updated ?> · HERMES.b2b by echo_lab</div>
+    <div class="meta">Última atualização: <?= $last_updated ?> · Newton IA by echo_lab</div>
   </div>
 
   <div class="toc">
@@ -109,20 +109,20 @@ $last_updated = '17 de maio de 2026';
 
   <div id="aceitacao" class="doc-section">
     <h2>// 1. Aceitação dos Termos</h2>
-    <p>Ao criar uma conta ou utilizar o <strong>HERMES.b2b</strong> ("Serviço"), operado pela <strong>echo_lab</strong> ("Empresa", "nós"), você ("Usuário", "Cliente") concorda integralmente com estes Termos de Uso e com nossa <a href="/privacy.php">Política de Privacidade</a>.</p>
+    <p>Ao criar uma conta ou utilizar o <strong>Newton IA</strong> ("Serviço"), operado pela <strong>echo_lab</strong> ("Empresa", "nós"), você ("Usuário", "Cliente") concorda integralmente com estes Termos de Uso e com nossa <a href="/privacy.php">Política de Privacidade</a>.</p>
     <p>Se você não concordar com estes termos, não utilize o Serviço. O uso continuado após alterações implica aceitação das novas condições.</p>
   </div>
 
   <div id="servico" class="doc-section">
     <h2>// 2. Descrição do Serviço</h2>
-    <p>O HERMES.b2b é uma plataforma SaaS de prospecção e gestão comercial B2B, composta pelos módulos:</p>
+    <p>O Newton IA é uma plataforma SaaS de prospecção e gestão comercial B2B, composta pelos módulos:</p>
     <ul>
       <li><strong>Radar Leads</strong> — pesquisa e qualificação de CNPJs da Receita Federal</li>
       <li><strong>Pipeline</strong> — CRM Kanban para gestão de oportunidades</li>
       <li><strong>Mail Lab</strong> — integração de e-mail comercial</li>
       <li><strong>Signal, Whats Lab, Pitch</strong> — módulos em desenvolvimento, disponíveis conforme plano</li>
     </ul>
-    <p>O Serviço é prestado na modalidade <strong>SaaS (Software as a Service)</strong>, acessível via navegador em <code>app.hermesb2b.co</code>. A Empresa se reserva o direito de adicionar, modificar ou remover funcionalidades mediante aviso prévio.</p>
+    <p>O Serviço é prestado na modalidade <strong>SaaS (Software as a Service)</strong>, acessível via navegador em <code>app.newtonia.digital</code>. A Empresa se reserva o direito de adicionar, modificar ou remover funcionalidades mediante aviso prévio.</p>
   </div>
 
   <div id="conta" class="doc-section">
@@ -130,7 +130,7 @@ $last_updated = '17 de maio de 2026';
     <h3>3.1 Cadastro</h3>
     <p>Para usar o Serviço, você deve fornecer informações verdadeiras, precisas e atualizadas. A Empresa pode suspender contas com dados falsos.</p>
     <h3>3.2 Credenciais</h3>
-    <p>Você é responsável pela confidencialidade de sua senha e por todas as atividades realizadas sob sua conta. Notifique-nos imediatamente em caso de uso não autorizado: <a href="mailto:suporte@hermesb2b.co">suporte@hermesb2b.co</a>.</p>
+    <p>Você é responsável pela confidencialidade de sua senha e por todas as atividades realizadas sob sua conta. Notifique-nos imediatamente em caso de uso não autorizado: <a href="mailto:suporte@newtonia.digital">suporte@newtonia.digital</a>.</p>
     <h3>3.3 Titularidade</h3>
     <p>Contas de pessoa jurídica podem ter múltiplos usuários conforme o plano contratado. O titular da conta é responsável pelos atos de todos os usuários vinculados.</p>
   </div>
@@ -140,7 +140,7 @@ $last_updated = '17 de maio de 2026';
     <h3>4.1 Trial</h3>
     <p>O período de teste gratuito é de <strong>3 (três) dias</strong>, sem necessidade de cartão de crédito, com os limites do plano Trial. Ao final, a conta é suspensa automaticamente caso nenhum plano pago seja contratado.</p>
     <h3>4.2 Pagamento</h3>
-    <p>Os pagamentos são processados pela <strong>Asaas Serviços Financeiros S/A</strong>, plataforma certificada PCI DSS. O HERMES.b2b não armazena dados de cartão de crédito.</p>
+    <p>Os pagamentos são processados pela <strong>Asaas Serviços Financeiros S/A</strong>, plataforma certificada PCI DSS. O Newton IA não armazena dados de cartão de crédito.</p>
     <p>São aceitas as formas de pagamento: <strong>PIX</strong> e <strong>Cartão de Crédito</strong> (recorrente). O vencimento das cobranças mensais segue a data de início da assinatura.</p>
     <h3>4.3 Inadimplência</h3>
     <p>Cobranças não pagas dentro de <strong>7 (sete) dias</strong> do vencimento resultam na suspensão automática do acesso. A reativação ocorre após a confirmação do pagamento.</p>
@@ -171,7 +171,7 @@ $last_updated = '17 de maio de 2026';
 
   <div id="propriedade" class="doc-section">
     <h2>// 6. Propriedade Intelectual</h2>
-    <p>O Serviço, incluindo software, design, marca HERMES.b2b, logotipos, textos e demais elementos, é de propriedade exclusiva da echo_lab e está protegido por leis de propriedade intelectual.</p>
+    <p>O Serviço, incluindo software, design, marca Newton IA, logotipos, textos e demais elementos, é de propriedade exclusiva da echo_lab e está protegido por leis de propriedade intelectual.</p>
     <p>O usuário recebe uma licença <strong>limitada, não exclusiva, intransferível e revogável</strong> para acessar e usar o Serviço durante o período de assinatura vigente.</p>
     <p><strong>Seus dados</strong> (leads, cards de Pipeline, listas etc.) são de sua propriedade. A echo_lab não reivindica propriedade sobre o conteúdo inserido pelo usuário.</p>
   </div>
@@ -219,9 +219,9 @@ $last_updated = '17 de maio de 2026';
   <div id="contato" class="doc-section">
     <h2>// 13. Contato</h2>
     <div class="highlight-box">
-      <strong>echo_lab — HERMES.b2b</strong><br>
-      E-mail: <a href="mailto:suporte@hermesb2b.co">suporte@hermesb2b.co</a><br>
-      Site: <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a>
+      <strong>echo_lab — Newton IA</strong><br>
+      E-mail: <a href="mailto:suporte@newtonia.digital">suporte@newtonia.digital</a><br>
+      Site: <a href="https://www.newtonia.digital" target="_blank">newtonia.digital</a>
     </div>
   </div>
 
@@ -231,7 +231,7 @@ $last_updated = '17 de maio de 2026';
   <a href="/terms.php">Termos de Uso</a>
   <a href="/privacy.php">Privacidade</a>
   <a href="/login.php">Login</a>
-  <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a>
+  <a href="https://www.newtonia.digital" target="_blank">newtonia.digital</a>
   <span>· by echo_lab · <?= date('Y') ?></span>
 </div>
 

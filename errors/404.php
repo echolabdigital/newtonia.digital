@@ -5,23 +5,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<title>Página não encontrada — HERMES.b2b</title>
+<title>Página não encontrada — Newton IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root { --hermes:#10b981; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
+  :root { --newton:#0ea5e9; --ink:#18181b; --mute:#8b8a93; --line:#e7e5e0; --bone:#f6f4ef; }
   body { font-family: 'Geist', system-ui, sans-serif; background: var(--bone); color: var(--ink); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; }
 
   .wrap { width: 100%; max-width: 480px; text-align: center; }
 
   .brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 36px; text-decoration: none; color: inherit; }
-  .brand-icon { width: 44px; height: 44px; border-radius: 11px; background: var(--hermes); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16,185,129,.25); }
+  .brand-icon { width: 44px; height: 44px; border-radius: 11px; background: var(--newton); color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(16,185,129,.25); }
   .brand-text { font-family: 'Geist Mono', monospace; font-weight: 700; font-size: 1.2rem; line-height: 1.1; }
-  .brand-text .b2b { color: var(--hermes); font-size: .76em; }
+  .brand-text .b2b { color: var(--newton); font-size: .76em; }
 
-  .code { font-family: 'Geist Mono', monospace; font-size: 6rem; font-weight: 800; color: var(--hermes); line-height: 1; margin-bottom: 12px; letter-spacing: -4px; }
+  .code { font-family: 'Geist Mono', monospace; font-size: 6rem; font-weight: 800; color: var(--newton); line-height: 1; margin-bottom: 12px; letter-spacing: -4px; }
   .title { font-size: 1.4rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.02em; }
   .desc { color: var(--mute); font-size: .92rem; line-height: 1.6; margin-bottom: 28px; }
 
@@ -29,14 +29,14 @@
 
   .actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
   .btn { padding: 11px 22px; border-radius: 9px; font-size: .92rem; font-weight: 600; font-family: inherit; text-decoration: none; cursor: pointer; transition: all .15s; }
-  .btn-primary { background: var(--hermes); color: #fff; border: none; }
+  .btn-primary { background: var(--newton); color: #fff; border: none; }
   .btn-primary:hover { background: #0ea371; }
   .btn-ghost { background: #fff; color: var(--ink); border: 1px solid var(--line); }
   .btn-ghost:hover { background: var(--bone); }
 
   .foot { margin-top: 40px; font-size: .72rem; color: var(--mute); }
   .foot a { color: var(--mute); text-decoration: none; }
-  .foot a:hover { color: var(--hermes); }
+  .foot a:hover { color: var(--newton); }
 </style>
 </head>
 <body>
@@ -62,7 +62,7 @@
   </div>
 
   <div class="foot">
-    <a href="https://www.hermesb2b.co" target="_blank">hermesb2b.co</a> · by echo_lab
+    <a href="https://www.newtonia.digital" target="_blank">newtonia.digital</a> · by echo_lab
   </div>
 </div>
 </body>

@@ -91,9 +91,9 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
 <style>
   .tn-toolbar { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:14px 16px; margin-bottom:14px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .tn-toolbar input, .tn-toolbar select { padding:8px 12px; border:1px solid #e5e7eb; border-radius:7px; font-size:.85rem; font-family:inherit; }
-  .tn-toolbar input:focus, .tn-toolbar select:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 3px rgba(16,185,129,.1); }
+  .tn-toolbar input:focus, .tn-toolbar select:focus { outline:none; border-color:#0ea5e9; box-shadow:0 0 0 3px rgba(14,165,233,.1); }
   .tn-toolbar .tn-search { flex:1; min-width:200px; }
-  .tn-toolbar button { padding:8px 16px; background:#10b981; color:#fff; border:none; border-radius:7px; font-size:.85rem; font-weight:500; cursor:pointer; font-family:inherit; }
+  .tn-toolbar button { padding:8px 16px; background:#0ea5e9; color:#fff; border:none; border-radius:7px; font-size:.85rem; font-weight:500; cursor:pointer; font-family:inherit; }
   .tn-toolbar button:hover { background:#0ea371; }
   .tn-toolbar .tn-new { background:#0f172a; }
   .tn-toolbar .tn-new:hover { background:#1e293b; }
@@ -113,7 +113,7 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
   .tn-tier { font-family:'Geist Mono',monospace; font-size:.62rem; padding:2px 7px; border-radius:4px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; display:inline-block; }
   .tn-tier.trial    { background:#f3f4f6; color:#6b7280; }
   .tn-tier.starter  { background:#dcfce7; color:#166534; }
-  .tn-tier.pro      { background:#10b98115; color:#059669; border:1px solid #10b98140; }
+  .tn-tier.pro      { background:#0ea5e915; color:#0284c7; border:1px solid #0ea5e940; }
   .tn-tier.business { background:#0ea5e915; color:#0369a1; border:1px solid #0ea5e940; }
   .tn-tier.none     { background:#f3f4f6; color:#9ca3af; font-style:italic; }
 
@@ -133,7 +133,7 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
   .tn-actions { display:flex; gap:5px; justify-content:flex-end; }
   .tn-btn { padding:6px 10px; background:#fff; border:1px solid #e5e7eb; border-radius:6px; font-size:.72rem; font-weight:500; color:#374151; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:3px; font-family:inherit; }
   .tn-btn:hover { background:#f3f4f6; border-color:#9ca3af; }
-  .tn-btn.primary { background:#10b981; color:#fff; border-color:#10b981; }
+  .tn-btn.primary { background:#0ea5e9; color:#fff; border-color:#0ea5e9; }
   .tn-btn.primary:hover { background:#0ea371; border-color:#0ea371; }
   .tn-btn.warn { background:#fef3c7; color:#92400e; border-color:#fcd34d; }
   .tn-btn.warn:hover { background:#fde68a; }
@@ -147,7 +147,7 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
   .mod-box input, .mod-box select { width:100%; padding:9px 12px; border:1px solid #e5e7eb; border-radius:7px; font-size:.86rem; font-family:inherit; margin-bottom:12px; }
   .mod-actions { display:flex; gap:8px; justify-content:flex-end; padding-top:12px; border-top:1px solid #f3f4f6; }
   .mod-btn { padding:8px 14px; border:none; border-radius:7px; font-size:.84rem; font-weight:500; cursor:pointer; font-family:inherit; }
-  .mod-btn.primary { background:#10b981; color:#fff; }
+  .mod-btn.primary { background:#0ea5e9; color:#fff; }
   .mod-btn.ghost { background:#fff; color:#374151; border:1px solid #e5e7eb; }
 
   .toast { position:fixed; bottom:20px; right:20px; background:#0f172a; color:#fff; padding:11px 18px; border-radius:8px; font-size:.84rem; z-index:400; opacity:0; transition:opacity .2s; pointer-events:none; }
@@ -197,7 +197,7 @@ admin_layout('Tenants', 'tenants', function() use ($tenants, $status_filter, $q,
       $leads_pct = $leads_limit > 0 ? min(100, round(($leads_used / $leads_limit) * 100)) : 0;
       $pct_cls = $leads_pct >= 90 ? 'danger' : ($leads_pct >= 70 ? 'warn' : '');
       $last_login = $t['last_login'] ? date('d/m H:i', strtotime($t['last_login'])) : '—';
-      $brand_color = $t['brand_color'] ?: '#10b981';
+      $brand_color = $t['brand_color'] ?: '#0ea5e9';
       $initial = strtoupper(mb_substr($t['brand_name'] ?: $t['name'], 0, 1));
     ?>
       <tr>
