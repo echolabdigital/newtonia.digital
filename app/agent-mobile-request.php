@@ -49,7 +49,15 @@ if (str_starts_with($phone, '55') && strlen($phone) === 13) {
 $result = zapi_mobile_request_code($cfg['instance'], $cfg['token'], $cfg['client_token'], $phone, $method);
 
 if (!empty($result['success'])) {
-    audit_log('agent.mobile_request_code', 'agent_channel', $channelId, ['phone' => $phone, 'method' => $method]);
+    audit_log('agent.mobile_request_code', 'agent_channel', $channelId, [
+        'phone'      => $phone,
+        'method'     => $method,
+        'preflight'  => [
+            'dedicated_chip'  => !empty($_POST['pf_chip']),
+            'whatsapp_aged'   => !empty($_POST['pf_24h']),
+            'autonomy_aware'  => !empty($_POST['pf_aware']),
+        ],
+    ]);
     echo json_encode([
         'ok'         => true,
         'retryAfter' => $result['retryAfter'] ?? 60,

@@ -42,9 +42,9 @@ function llm_catalog(): array {
             'icon'   => 'A',
             'desc'   => 'Claude · Raciocínio avançado',
             'models' => [
-                'claude-sonnet-4-5'        => 'Claude Sonnet 4.5 · Balanceado',
-                'claude-haiku-4-5'         => 'Claude Haiku 4.5 · Rápido',
-                'claude-opus-4-5'          => 'Claude Opus 4.5 · Melhor qualidade',
+                'claude-sonnet-4-6'        => 'Claude Sonnet 4.6 · Balanceado (recomendado)',
+                'claude-haiku-4-5'         => 'Claude Haiku 4.5 · Rápido e barato',
+                'claude-opus-4-7'          => 'Claude Opus 4.7 · Melhor qualidade',
             ],
         ],
         'google' => [

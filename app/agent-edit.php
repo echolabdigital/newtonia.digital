@@ -369,8 +369,36 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
           <strong>⚠ Antes de continuar:</strong> a instancia precisa ser <strong>mobile</strong> no painel Z-API. Crie em <a href="https://app.z-api.io" target="_blank" style="color:#92400e;text-decoration:underline">app.z-api.io</a> &rsaquo; <em>Nova instancia</em> &rsaquo; <em>Mobile</em>. Cole as credenciais acima e salve. So depois siga o fluxo abaixo.
         </div>
 
+        <!-- Pre-flight checklist anti-ban -->
+        <div id="preflightBox" style="background:#fff;border:1.5px solid #fecaca;border-radius:10px;padding:1rem 1.1rem">
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.75rem">
+            <svg width="18" height="18" fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+            <strong style="font-size:.92rem;color:#991b1b">Checklist anti-banimento</strong>
+          </div>
+          <div style="font-size:.82rem;color:#7f1d1d;line-height:1.5;margin-bottom:.85rem">
+            WhatsApp bane números novos conectados em automação. <strong>Confirme antes de prosseguir:</strong>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.65rem">
+            <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;font-size:.86rem;color:#18181b;line-height:1.45">
+              <input type="checkbox" id="pf-chip" onchange="updatePreflight()" style="margin-top:.2rem;accent-color:#0ea5e9;width:16px;height:16px;cursor:pointer">
+              <span>Tenho um <strong>chip exclusivo</strong> pra este agente (não é meu pessoal/empresa)</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;font-size:.86rem;color:#18181b;line-height:1.45">
+              <input type="checkbox" id="pf-24h" onchange="updatePreflight()" style="margin-top:.2rem;accent-color:#0ea5e9;width:16px;height:16px;cursor:pointer">
+              <span>O WhatsApp deste número está <strong>ativo há mais de 24 horas</strong> (ideal: 3+ dias com uso humano)</span>
+            </label>
+            <label style="display:flex;align-items:flex-start;gap:.6rem;cursor:pointer;font-size:.86rem;color:#18181b;line-height:1.45">
+              <input type="checkbox" id="pf-aware" onchange="updatePreflight()" style="margin-top:.2rem;accent-color:#0ea5e9;width:16px;height:16px;cursor:pointer">
+              <span>Entendo que ao conectar aqui, o WhatsApp <strong>sairá do meu celular</strong> (instância mobile = autônoma)</span>
+            </label>
+          </div>
+          <div style="margin-top:.85rem;padding-top:.7rem;border-top:1px dashed #fecaca;font-size:.74rem;color:#7f1d1d;line-height:1.45">
+            💡 <strong>Dica de aquecimento:</strong> antes de conectar, use o número manualmente por 2-3 dias enviando mensagens pra contatos diversos. Isso reduz drasticamente o risco de ban.
+          </div>
+        </div>
+
         <!-- Step 1: phone -->
-        <div id="mobileStep1">
+        <div id="mobileStep1" style="opacity:.45;pointer-events:none;transition:opacity .2s" data-locked="1">
           <label class="ae-label">Numero do agente (DDD + numero)</label>
           <div style="display:flex;gap:.5rem">
             <input id="mobilePhone" class="ae-input ae-mono" type="text" placeholder="11999999999" maxlength="15" style="flex:1;font-size:.95rem;letter-spacing:.02em">
@@ -382,10 +410,11 @@ app_layout($isNew ? 'Novo Agente' : 'Editar Agente', 'agents', function() use ($
           </div>
           <div style="font-size:.75rem;color:#8b8a93;margin-top:.3rem">Codigo do pais (55) sera adicionado automaticamente. Use o numero que sera dedicado ao agente.</div>
           <div style="margin-top:1rem;display:flex;gap:.5rem;align-items:center">
-            <button type="button" onclick="mobileRequestCode()" id="mobileRequestBtn" class="ae-btn-primary">
+            <button type="button" onclick="mobileRequestCode()" id="mobileRequestBtn" class="ae-btn-primary" disabled>
               Solicitar codigo
             </button>
             <span id="mobileWait" style="font-size:.8rem;color:#8b8a93;display:none"></span>
+            <span id="preflightHint" style="font-size:.78rem;color:#dc2626;font-weight:500">Confirme o checklist acima primeiro</span>
           </div>
         </div>
 
@@ -508,6 +537,9 @@ async function mobileRequestCode(){
     fd.append('channel_id', _channelId);
     fd.append('phone',  phone);
     fd.append('method', method);
+    fd.append('pf_chip',  document.getElementById('pf-chip').checked ? '1' : '0');
+    fd.append('pf_24h',   document.getElementById('pf-24h').checked ? '1' : '0');
+    fd.append('pf_aware', document.getElementById('pf-aware').checked ? '1' : '0');
     var r = await fetch('/app/agent-mobile-request.php', { method:'POST', body:fd }).then(r=>r.json());
     if(r.ok){
       _mobileMsg('ok','Codigo enviado! Aguarde a chegada e confirme abaixo.');
@@ -534,6 +566,39 @@ function mobileBackStep1(){
   document.getElementById('mobileStep1').style.display = 'block';
   document.getElementById('mobileStep2').style.display = 'none';
   document.getElementById('mobileMsg').style.display = 'none';
+}
+
+// ── Preflight checklist anti-ban ──────────────────────────────────────────
+function updatePreflight(){
+  var chip  = document.getElementById('pf-chip');
+  var h24   = document.getElementById('pf-24h');
+  var aware = document.getElementById('pf-aware');
+  if (!chip || !h24 || !aware) return;
+  var allOk = chip.checked && h24.checked && aware.checked;
+  var step1 = document.getElementById('mobileStep1');
+  var btn   = document.getElementById('mobileRequestBtn');
+  var hint  = document.getElementById('preflightHint');
+  var box   = document.getElementById('preflightBox');
+  if (allOk) {
+    step1.style.opacity = '1';
+    step1.style.pointerEvents = 'auto';
+    step1.dataset.locked = '0';
+    btn.disabled = false;
+    hint.style.display = 'none';
+    box.style.borderColor = '#bbf7d0';
+    box.style.background  = '#f0fdf4';
+    box.querySelector('strong').style.color = '#166534';
+    document.getElementById('mobilePhone').focus();
+  } else {
+    step1.style.opacity = '.45';
+    step1.style.pointerEvents = 'none';
+    step1.dataset.locked = '1';
+    btn.disabled = true;
+    hint.style.display = 'inline';
+    box.style.borderColor = '#fecaca';
+    box.style.background  = '#fff';
+    box.querySelector('strong').style.color = '#991b1b';
+  }
 }
 
 async function discoverInstances(){
